@@ -3,10 +3,10 @@
 ## Status: Not started (prepping)
 
 ## Environment
-- Supabase project name: blog-forum-app
+- Supabase project name: blog_forum_app
 - Flutter project name: blog_forum_app
 - GitHub repo: https://github.com/Gel0oo/blog-forum-app
-- Flutter SDK version: <run `flutter --version`, paste here>
+- Flutter SDK version: 3.44.0
 
 ## Steps
 - [ ] 1. Supabase schema + RLS policies + storage buckets
