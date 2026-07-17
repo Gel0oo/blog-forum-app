@@ -5,6 +5,7 @@
 ## Environment
 - Supabase project name: blog-forum-app
 - Flutter project name: blog_forum_app
+- GitHub repo: https://github.com/Gel0oo/blog-forum-app
 - Flutter SDK version: <run `flutter --version`, paste here>
 
 ## Steps
@@ -22,4 +23,4 @@
 _(filled in as we go — schema choices, why something's structured a certain way)_
 
 ## Next Session Start Here
-_(one line, updated at the end of every session, so a fresh chat knows exactly where to resume)_
+Repo is set up and pushed to GitHub. Starting Step 1: Supabase schema + RLS policies.
