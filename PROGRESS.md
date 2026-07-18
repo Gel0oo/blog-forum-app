@@ -17,8 +17,8 @@
 - [ ] 8. Deploy + submit
 
 ## Key Decisions
-- Images stored as separate rows (post_images, comment_images) not array columns — lets us delete individual images without rewriting a whole array.
-- RLS policies at the DB level (auth.uid() = user_id) — not relying on frontend so that we don't end up letting users access others
+- Images stored as separate rows (post_images, comment_images) not array columns — makes us so that I can delete individual images without rewriting a whole array.
+- RLS policies at DB level (auth.uid() = user_id) — not relying on frontend so that we don't end up letting users access others.
 - Image files live in Supabase Storage; DB only stores the resulting URL (post_images.url & comment_images.url).
 - Storage bucket is Public (handles reads); 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
 
