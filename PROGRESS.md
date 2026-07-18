@@ -5,6 +5,7 @@
 - [x] Repo + git connection setup.
 - [x] Supabase setup, schema + RLS done, storage bucket next.
 - [x] Supabase storage bucket setup (post_images, public + 2 policies).
+- [x] File structure
 
 ## Steps (Making the actual Project)
 - [ ] 1. Flutter Project + Supabase connected
