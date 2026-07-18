@@ -1,26 +1,29 @@
 # Blog Forum App — Progress
 
-## Status: Not started (prepping)
+## Preparation
+- [x] Setup a flutter project.
+- [x] Repo + git connection setup.
+- [x] Supabase setup, schema + RLS done, storage bucket next.
+- [x] Supabase storage bucket setup (post_images, public + 2 policies).
+
+## Steps (Making the actual Project)
+- [ ] 1. Flutter Project + Supabase connected
+- [ ] 2. Auth (register/login/logout)
+- [ ] 3. Post listing (public, paginated)
+- [ ] 4. Post create/edit + images
+- [ ] 5. Post detail + delete
+- [ ] 6. Comments + images
+- [ ] 7. Profile (avatar + name)
+- [ ] 8. Deploy + submit
+
+## Key Decisions
+- Images stored as separate rows (post_images, comment_images) not array columns — lets us delete individual images without rewriting a whole array.
+- RLS policies at the DB level (auth.uid() = user_id) — not relying on frontend so that we don't end up letting users access others
+- Image files live in Supabase Storage; DB only stores the resulting URL (post_images.url & comment_images.url).
+- Storage bucket is Public (handles reads); 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
 
 ## Environment
 - Supabase project name: blog_forum_app
 - Flutter project name: blog_forum_app
 - GitHub repo: https://github.com/Gel0oo/blog-forum-app
 - Flutter SDK version: 3.44.0
-
-## Steps
-- [ ] 1. Supabase schema + RLS policies + storage buckets
-- [ ] 2. Flutter skeleton + Supabase client connected
-- [ ] 3. Auth (register/login/logout) + go_router guard
-- [ ] 4. Post listing (public, paginated)
-- [ ] 5. Post create/edit with multi-image upload/delete
-- [ ] 6. Post detail + delete
-- [ ] 7. Comments CRUD with multi-image upload/delete
-- [ ] 8. Profile (avatar CRUD, name update)
-- [ ] 9. Deploy (web build + hosting) + submit
-
-## Key Decisions
-_(filled in as we go — schema choices, why something's structured a certain way)_
-
-## Next Session Start Here
-Repo is set up and pushed to GitHub. Starting Step 1: Supabase schema + RLS policies.
