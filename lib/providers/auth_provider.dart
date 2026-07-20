@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../supabase_config.dart';
 
+// Handles all authentication, will be called via main.dart and router.dart to determine if user is logged in or not
 class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => supabase.auth.currentSession != null;
 
