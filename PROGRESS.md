@@ -22,6 +22,7 @@
 - RLS policies at DB level (auth.uid() = user_id) — not relying on frontend so that we don't end up letting users access others.
 - Image files live in Supabase Storage; DB only stores the resulting URL (post_images.url & comment_images.url).
 - Storage bucket is Public (handles reads); 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
+- Should have a tap to enlarge image view for comments.
 
 ## Environment
 - Supabase project name: blog_forum_app
