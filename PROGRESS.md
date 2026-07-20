@@ -13,7 +13,7 @@
 - [x] 3. Post listing (public, paginated)
 - [x] 4. Post create/edit + images
 - [x] 5. Post detail + delete
-- [ ] 6. Comments + images
+- [x] 6. Comments + images
 - [ ] 7. Profile (avatar + name)
 - [ ] 8. Deploy + submit
 
