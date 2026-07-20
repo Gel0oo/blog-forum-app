@@ -10,9 +10,9 @@
 ## Steps (Making the actual Project)
 - [x] 1. Flutter Project + Supabase connected
 - [x] 2. Auth (register/login/logout)
-- [ ] 3. Post listing (public, paginated)
-- [ ] 4. Post create/edit + images
-- [ ] 5. Post detail + delete
+- [x] 3. Post listing (public, paginated)
+- [x] 4. Post create/edit + images
+- [x] 5. Post detail + delete
 - [ ] 6. Comments + images
 - [ ] 7. Profile (avatar + name)
 - [ ] 8. Deploy + submit
