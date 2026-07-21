@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../profile/profile_screen.dart';
 import 'post_form_screen.dart';
 import 'post_detail_screen.dart';
 
@@ -43,12 +44,22 @@ class _PostListScreenState extends State<PostListScreen> {
       appBar: AppBar(
         title: const Text('Posts'),
         actions: [
-          if (context.watch<AuthProvider>().isLoggedIn)
+          if (context.watch<AuthProvider>().isLoggedIn) ...[
+            IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () => context.read<AuthProvider>().signOut(),
-            )
-          else ...[
+            ),
+          ] else ...[
             TextButton(
               onPressed: () => context.go('/login'),
               child: const Text('Login'),

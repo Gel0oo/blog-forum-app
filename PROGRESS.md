@@ -14,8 +14,16 @@
 - [x] 4. Post create/edit + images
 - [x] 5. Post detail + delete
 - [x] 6. Comments + images
-- [ ] 7. Profile (avatar + name)
-- [ ] 8. Deploy + submit
+- [x] 7. Profile (avatar + name)
+- [x] 8. Deploy to vercel :D
+
+## Polishing (gotta make the website beautiful right?)
+- [ ] 1. Show author name + avatar on posts and comments
+- [ ] 2. Relative timestamps ("e.g. 2w/d/h/m/now ago")
+- [ ] 3. Empty states ("No posts yet", "No comments yet")
+- [ ] 4. Comment count shown on post list cards
+- [ ] 5. Visual/style pass using design reference (spacing, colors, typography)
+- [ ] 6. Tap-to-enlarge image viewer
 
 ## Key Decisions
 - Images stored as separate rows (post_images, comment_images) not array columns — makes us so that I can delete individual images without rewriting a whole array.

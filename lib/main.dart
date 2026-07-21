@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'supabase_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/posts_provider.dart';
+import 'providers/profile_provider.dart';
 import 'router.dart';
 
 void main() async {
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PostsProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider())
       ],
       child: Builder(
         builder: (context) {
