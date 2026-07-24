@@ -25,11 +25,28 @@ class PostsProvider extends ChangeNotifier {
 
     final response = await supabase
         .from('posts')
-        .select('*, post_images(*)')
+        .select('*, post_images(*), comments(count), post_likes(user_id)')
         .order('created_at', ascending: false)
         .range(from, to);
 
     final newPosts = List<Map<String, dynamic>>.from(response);
+
+    final userIds = newPosts
+        .map((p) => p['user_id'] as String)
+        .toSet()
+        .toList();
+    if (userIds.isNotEmpty) {
+      final profilesResponse = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .inFilter('id', userIds);
+
+      final profilesById = {for (final p in profilesResponse) p['id']: p};
+
+      for (final post in newPosts) {
+        post['author'] = profilesById[post['user_id']];
+      }
+    }
 
     if (newPosts.length < pageSize) hasMore = false;
     posts.addAll(newPosts);
@@ -113,5 +130,51 @@ class PostsProvider extends ChangeNotifier {
     await supabase.from('posts').delete().eq('id', postId);
     posts.removeWhere((p) => p['id'] == postId);
     notifyListeners();
+  }
+
+  Future<void> toggleLike(String postId) async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) return;
+    final userId = currentUser.id;
+
+    final postIndex = posts.indexWhere((p) => p['id'] == postId);
+    if (postIndex == -1) return;
+
+    final post = posts[postIndex];
+    final likes = post['post_likes'] as List;
+    final alreadyLiked = likes.any((l) => l['user_id'] == userId);
+
+    // 1. Optimistic Instant UI Update (0ms delay)
+    if (alreadyLiked) {
+      likes.removeWhere((l) => l['user_id'] == userId);
+    } else {
+      likes.add({'user_id': userId});
+    }
+    notifyListeners();
+
+    // 2. Silent Background Server Sync
+    try {
+      if (alreadyLiked) {
+        await supabase
+            .from('post_likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', userId);
+      } else {
+        await supabase.from('post_likes').insert({
+          'post_id': postId,
+          'user_id': userId,
+        });
+      }
+    } catch (e) {
+      // Revert local UI state if network fails
+      if (alreadyLiked) {
+        likes.add({'user_id': userId});
+      } else {
+        likes.removeWhere((l) => l['user_id'] == userId);
+      }
+      notifyListeners();
+      rethrow;
+    }
   }
 }

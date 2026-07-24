@@ -16,20 +16,22 @@
 - [x] 6. Comments + images
 - [x] 7. Profile (avatar + name)
 - [x] 8. Deploy to vercel :D
+- [ ] 9. Submit to HR
 
 ## Polishing (gotta make the website beautiful right?)
-- [ ] 1. Show author name + avatar on posts and comments
-- [ ] 2. Relative timestamps ("e.g. 2w/d/h/m/now ago")
+- [x] 1. Show author name + avatar on posts and comments
+- [x] 2. Relative timestamps ("e.g. 2w/d/h/m/now ago")
 - [ ] 3. Empty states ("No posts yet", "No comments yet")
-- [ ] 4. Comment count shown on post list cards
-- [ ] 5. Visual/style pass using design reference (spacing, colors, typography)
+- [x] 4. Comment count shown on post list cards
+- [x] 5. Visual/style pass using design reference (spacing, colors, typography)
 - [ ] 6. Tap-to-enlarge image viewer
+- [ ] 7. Dark/Light Mode
 
 ## Key Decisions
-- Images stored as separate rows (post_images, comment_images) not array columns — makes us so that I can delete individual images without rewriting a whole array.
-- RLS policies at DB level (auth.uid() = user_id) — not relying on frontend so that we don't end up letting users access others.
+- Images stored as separate rows (post_images, comment_images) not array columns, makes us so that they can delete individual images without rewriting a whole array.
+- RLS policies at DB level (auth.uid() = user_id), not relying on frontend so that we dont end up letting users access others.
 - Image files live in Supabase Storage; DB only stores the resulting URL (post_images.url & comment_images.url).
-- Storage bucket is Public (handles reads); 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
+- Storage bucket is Public (handles reads), 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
 - Should have a tap to enlarge image view for comments.
 
 ## Environment
