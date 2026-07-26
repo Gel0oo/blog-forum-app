@@ -1,3 +1,6 @@
+// lib/router.dart
+
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
@@ -13,19 +16,28 @@ GoRouter buildRouter(AuthProvider authProvider) {
       final onAuthPage =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
-      final isPublicRoute = state.matchedLocation == '/';
 
-      if (!loggedIn && !onAuthPage && !isPublicRoute) return '/login';
       if (loggedIn && onAuthPage) return '/';
       return null;
     },
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+      ShellRoute(
+        builder: (context, state, child) {
+          // PostListScreen stays persistently mounted in background
+          return Stack(
+            children: [
+              const PostListScreen(),
+              if (state.matchedLocation == '/login') const LoginScreen(),
+              if (state.matchedLocation == '/register') const RegisterScreen(),
+            ],
+          );
+        },
+        routes: [
+          GoRoute(path: '/', builder: (context, state) => const SizedBox.shrink()),
+          GoRoute(path: '/login', builder: (context, state) => const SizedBox.shrink()),
+          GoRoute(path: '/register', builder: (context, state) => const SizedBox.shrink()),
+        ],
       ),
-      GoRoute(path: '/', builder: (context, state) => const PostListScreen()),
     ],
   );
 }

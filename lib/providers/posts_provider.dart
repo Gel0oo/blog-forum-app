@@ -177,4 +177,40 @@ class PostsProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<void> searchPosts(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) {
+      await fetchPosts(refresh: true); // Resets feed if query is cleared
+      return;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    // Searches entire Supabase database for matching titles or bodies
+    final response = await supabase
+        .from('posts')
+        .select('*, post_images(*), comments(count), post_likes(user_id)')
+        .or('title.ilike.%$q%,body.ilike.%$q%')
+        .order('created_at', ascending: false);
+
+    posts = List<Map<String, dynamic>>.from(response);
+
+    final userIds = posts.map((p) => p['user_id'] as String).toSet().toList();
+    if (userIds.isNotEmpty) {
+      final profilesResponse = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .inFilter('id', userIds);
+
+      final profilesById = {for (final p in profilesResponse) p['id']: p};
+      for (final post in posts) {
+        post['author'] = profilesById[post['user_id']];
+      }
+    }
+
+    isLoading = false;
+    notifyListeners();
+  }
 }

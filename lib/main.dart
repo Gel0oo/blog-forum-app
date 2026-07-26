@@ -31,20 +31,28 @@ class MyApp extends StatelessWidget {
           final authProvider = context.watch<AuthProvider>();
           return ShadcnApp.router(
             debugShowCheckedModeBanner: false,
-            themeMode: ThemeMode.system, // Uses built-in OS light/dark modes
+            themeMode: ThemeMode.system,
             theme: ThemeData(
-              colorScheme: ColorSchemes.slate(ThemeMode.light).copyWith(
-                primary: () => AppColors.primary, // ValueGetter<Color> function
-              ),
+              colorScheme: ColorSchemes.slate(
+                ThemeMode.light,
+              ).copyWith(primary: () => AppColors.primary),
               scaling: 1.15,
             ),
             darkTheme: ThemeData(
-              colorScheme: ColorSchemes.slate(ThemeMode.dark).copyWith(
-                primary: () => AppColors.primary, // ValueGetter<Color> function
-              ),
+              colorScheme: ColorSchemes.slate(
+                ThemeMode.dark,
+              ).copyWith(primary: () => AppColors.primary, ring: () => AppColors.primary),
               scaling: 1.15,
             ),
             routerConfig: buildRouter(authProvider),
+            builder: (context, child) {
+              // Force animations on regardless of the OS "reduce motion" setting,
+              // so every visitor sees the same popover/transition behavior you do.
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(disableAnimations: false),
+                child: child!,
+              );
+            },
           );
         },
       ),

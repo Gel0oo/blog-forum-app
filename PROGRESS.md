@@ -25,14 +25,15 @@
 - [x] 4. Comment count shown on post list cards
 - [x] 5. Visual/style pass using design reference (spacing, colors, typography)
 - [ ] 6. Tap-to-enlarge image viewer
-- [ ] 7. Dark/Light Mode
+- [x] 7. Dark/Light Mode
 
 ## Key Decisions
 - Images stored as separate rows (post_images, comment_images) not array columns, makes us so that they can delete individual images without rewriting a whole array.
 - RLS policies at DB level (auth.uid() = user_id), not relying on frontend so that we dont end up letting users access others.
 - Image files live in Supabase Storage; DB only stores the resulting URL (post_images.url & comment_images.url).
 - Storage bucket is Public (handles reads), 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
-- Should have a tap to enlarge image view for comments.
+- Should have a tap to enlarge image view for comments and posts.
+- 
 
 ## Environment
 - Supabase project name: blog_forum_app

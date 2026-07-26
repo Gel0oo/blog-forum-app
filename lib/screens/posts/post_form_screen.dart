@@ -1,10 +1,17 @@
-// This screen allows users to create a new post or edit an exisiting one.
+// lib/screens/posts/post_form_screen.dart
 
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../providers/posts_provider.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/top_app_bar.dart';
+import '../../widgets/post_form/post_form_markdown.dart';
+import '../../widgets/post_form/post_form_imagepicker.dart';
 
 class PostFormScreen extends StatefulWidget {
   final Map<String, dynamic>? existingPost;
@@ -16,7 +23,7 @@ class PostFormScreen extends StatefulWidget {
 
 class _PostFormScreenState extends State<PostFormScreen> {
   final titleController = TextEditingController();
-  final bodyController = TextEditingController();
+  late final TextEditingController bodyController; // <--- Change to late final
   final List<Uint8List> pickedImages = [];
   final List<String> imageIdsToDelete = [];
   List<dynamic> existingImages = [];
@@ -28,11 +35,21 @@ class _PostFormScreenState extends State<PostFormScreen> {
   @override
   void initState() {
     super.initState();
+    bodyController = MarkdownVisualController(
+      context,
+    ); // <--- Initialize with MarkdownVisualController!
     if (isEditing) {
-      titleController.text = widget.existingPost!['title'];
-      bodyController.text = widget.existingPost!['body'];
-      existingImages = List.from(widget.existingPost!['post_images']);
+      titleController.text = widget.existingPost!['title'] ?? '';
+      bodyController.text = widget.existingPost!['body'] ?? '';
+      existingImages = List.from(widget.existingPost!['post_images'] ?? []);
     }
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    bodyController.dispose();
+    super.dispose();
   }
 
   Future<void> pickImages() async {
@@ -44,29 +61,31 @@ class _PostFormScreenState extends State<PostFormScreen> {
     }
   }
 
-  void removeExistingImage(String imageId) {
-    setState(() {
-      imageIdsToDelete.add(imageId);
-      existingImages.removeWhere((img) => img['id'] == imageId);
-    });
-  }
-
   Future<void> handleSubmit() async {
-    setState(() => isSubmitting = true);
+    if (titleController.text.trim().isEmpty) {
+      setState(() => error = 'Title cannot be empty.');
+      return;
+    }
+
+    setState(() {
+      isSubmitting = true;
+      error = null;
+    });
+
     try {
       final provider = context.read<PostsProvider>();
       if (isEditing) {
         await provider.updatePost(
           postId: widget.existingPost!['id'],
-          title: titleController.text,
-          body: bodyController.text,
+          title: titleController.text.trim(),
+          body: bodyController.text.trim(),
           newImageBytes: pickedImages,
           imageIdsToDelete: imageIdsToDelete,
         );
       } else {
         await provider.createPost(
-          title: titleController.text,
-          body: bodyController.text,
+          title: titleController.text.trim(),
+          body: bodyController.text.trim(),
           imageBytes: pickedImages,
         );
       }
@@ -74,82 +93,115 @@ class _PostFormScreenState extends State<PostFormScreen> {
     } catch (e) {
       setState(() => error = e.toString());
     } finally {
-      setState(() => isSubmitting = false);
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New Post')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            TextField(
-              controller: bodyController,
-              maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Body'),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
+      backgroundColor: AppColors.background(context),
+      appBar: const TopAppBar(),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: SizedBox(
+            width: 720,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...existingImages.map(
-                  (img) => Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Image.network(
-                        img['url'],
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        LucideIcons.arrowLeft,
+                        size: 20,
+                        color: AppColors.textPrimary(context),
                       ),
-                      Positioned(
-                        top: -8,
-                        right: -8,
-                        child: GestureDetector(
-                          onTap: () => removeExistingImage(img['id']),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(2),
-                            child: const Icon(
-                              Icons.close,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                          ),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isEditing ? 'Edit Post' : 'Create Post',
+                      style: GoogleFonts.inter(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Title Input
+                shadcn.TextField(
+                  controller: titleController,
+                  borderRadius: BorderRadius.circular(AppRadius.value),
+                  border: Border.all(color: AppColors.border(context)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  placeholder: Text(
+                    'Title *',
+                    style: AppTextStyles.body(context, size: 14),
+                  ),
+                  features: const [shadcn.InputFeature.clear()],
+                ),
+                const SizedBox(height: 16),
+
+                // Markdown Editor Component
+                PostFormMarkdown(controller: bodyController),
+                const SizedBox(height: 16),
+
+                // Combined Image Picker & Preview Grid Component
+                PostFormImagePicker(
+                  onTap: pickImages,
+                  existingImages: existingImages,
+                  pickedImages: pickedImages,
+                  onRemoveExisting: (id) => setState(() {
+                    imageIdsToDelete.add(id);
+                    existingImages.removeWhere((img) => img['id'] == id);
+                  }),
+                  onRemovePicked: (index) =>
+                      setState(() => pickedImages.removeAt(index)),
+                ),
+                const SizedBox(height: 16),
+
+                if (error != null) ...[
+                  Text(
+                    error!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Action Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    shadcn.SecondaryButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 12),
+                    shadcn.PrimaryButton(
+                      onPressed: isSubmitting ? null : handleSubmit,
+                      child: Text(
+                        isSubmitting
+                            ? 'Posting...'
+                            : (isEditing ? 'Save Changes' : 'Post'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                ...pickedImages.map(
-                  (bytes) => Image.memory(
-                    bytes,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            TextButton(onPressed: pickImages, child: const Text('Add Images')),
-            const SizedBox(height: 16),
-            if (error != null)
-              Text(error!, style: const TextStyle(color: Colors.red)),
-            ElevatedButton(
-              onPressed: isSubmitting ? null : handleSubmit,
-              child: Text(isSubmitting ? 'Posting...' : 'Post'),
-            ),
-          ],
+          ),
         ),
       ),
     );
