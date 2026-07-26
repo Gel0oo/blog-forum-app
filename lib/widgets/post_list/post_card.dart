@@ -12,6 +12,7 @@ import '../../screens/posts/post_detail_screen.dart';
 import 'post_image.dart';
 import 'pill_button.dart';
 import 'post_menu_dropdown.dart';
+import 'image_viewer.dart';
 
 class PostCard extends StatelessWidget {
   final Map<String, dynamic> post;
@@ -57,10 +58,7 @@ class PostCard extends StatelessWidget {
             );
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.value),
               border: Border.all(color: AppColors.border(context)),
@@ -111,15 +109,32 @@ class PostCard extends StatelessWidget {
                   style: AppTextStyles.heading(context, size: 20),
                 ),
                 const SizedBox(height: AppSpacing.xs),
+
+                // Exact 2-line truncation with native '...'
                 Text(
-                  post['body'],
+                  post['body'] ?? '',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.body(context),
                 ),
+
                 if (images.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.sm),
-                  PostImage(url: images[0]['url']),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      showGeneralDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        barrierLabel: 'Close image',
+                        barrierColor: Colors.transparent,
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return ImageViewerScreen(url: images[0]['url']);
+                        },
+                      );
+                    },
+                    child: PostImage(url: images[0]['url']),
+                  ),
                 ],
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -129,9 +144,9 @@ class PostCard extends StatelessWidget {
                       filled: isLiked,
                       label: '$likeCount',
                       onTap: isLoggedIn
-                          ? () => context
-                                .read<PostsProvider>()
-                                .toggleLike(post['id'])
+                          ? () => context.read<PostsProvider>().toggleLike(
+                              post['id'],
+                            )
                           : null,
                     ),
                     const SizedBox(width: 8),
@@ -147,10 +162,7 @@ class PostCard extends StatelessWidget {
                       },
                     ),
                     const SizedBox(width: 8),
-                    PillButton(
-                      icon: LucideIcons.cornerUpRight,
-                      onTap: () {},
-                    ),
+                    PillButton(icon: LucideIcons.cornerUpRight, onTap: () {}),
                   ],
                 ),
               ],

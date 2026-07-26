@@ -6,6 +6,7 @@ import 'supabase_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/posts_provider.dart';
 import 'providers/profile_provider.dart';
+import 'providers/theme_provider.dart';
 import 'router.dart';
 import 'theme/app_theme.dart';
 
@@ -25,13 +26,16 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PostsProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: Builder(
         builder: (context) {
           final authProvider = context.watch<AuthProvider>();
+          final themeProvider = context.watch<ThemeProvider>();
+
           return ShadcnApp.router(
             debugShowCheckedModeBanner: false,
-            themeMode: ThemeMode.system,
+            themeMode: themeProvider.themeMode,
             theme: ThemeData(
               colorScheme: ColorSchemes.slate(
                 ThemeMode.light,

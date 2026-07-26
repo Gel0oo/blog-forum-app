@@ -12,6 +12,7 @@ import '../providers/posts_provider.dart';
 import '../theme/app_theme.dart';
 import '../screens/profile/profile_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../providers/theme_provider.dart';
 
 class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TopAppBar({super.key});
@@ -186,10 +187,13 @@ class _SearchFieldState extends State<_SearchField> {
 
 class _ProfileMenu extends StatelessWidget {
   final String? avatarUrl;
-  const _ProfileMenu({super.key, this.avatarUrl});
+  const _ProfileMenu({this.avatarUrl});
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDark(context);
+
     return Builder(
       builder: (avatarContext) {
         return MouseRegion(
@@ -224,6 +228,25 @@ class _ProfileMenu extends StatelessWidget {
                           },
                           child: const Text('Profile'),
                         ),
+
+                        // Light / Dark Mode Toggle item with Sun/Moon Icon and Switch
+                        shadcn.MenuButton(
+                          leading: Icon(
+                            isDark ? LucideIcons.moon : LucideIcons.sun,
+                            size: 18,
+                          ),
+                          trailing: shadcn.Switch(
+                            value: isDark,
+                            onChanged: (val) {
+                              context.read<ThemeProvider>().toggleTheme(val);
+                            },
+                          ),
+                          onPressed: (context) {
+                            context.read<ThemeProvider>().toggleTheme(!isDark);
+                          },
+                          child: Text(isDark ? 'Dark Mode' : 'Light Mode'),
+                        ),
+
                         shadcn.MenuButton(
                           leading: const Icon(LucideIcons.logOut, size: 18),
                           onPressed: (context) {
