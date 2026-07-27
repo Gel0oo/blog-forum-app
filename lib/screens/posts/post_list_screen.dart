@@ -8,9 +8,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_app_bar.dart';
-import '../../widgets/post_list/post_card.dart';
-import '../../widgets/post_list/post_card_skeleton.dart';
-import '../../widgets/post_list/side_content.dart';
+import '../../widgets/post_list/list_card.dart';
+import '../../widgets/post_list/list_cardskeleton.dart';
+import '../../widgets/post_list/list_sidecontent.dart';
 
 class PostListScreen extends StatefulWidget {
   const PostListScreen({super.key});
@@ -128,7 +128,7 @@ class _PostListScreenState extends State<PostListScreen>
                       );
                     }
                   },
-                  child: const SideContent(),
+                  child: const ListSideContent(),
                 ),
               ),
             ],
@@ -179,9 +179,9 @@ class _PostListScreenState extends State<PostListScreen>
     if (postsProvider.isLoading && postsProvider.posts.isEmpty) {
       return const Column(
         children: [
-          PostCardSkeleton(),
-          PostCardSkeleton(),
-          PostCardSkeleton(),
+          ListCardSkeleton(),
+          ListCardSkeleton(),
+          ListCardSkeleton(),
         ],
       );
     }
@@ -190,12 +190,12 @@ class _PostListScreenState extends State<PostListScreen>
       return postsProvider.hasMore
           ? const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.md),
-              child: PostCardSkeleton(),
+              child: ListCardSkeleton(),
             )
           : const SizedBox.shrink();
     }
 
     final post = displayedPosts[index - 1];
-    return PostCard(post: post, scrollController: scrollController);
+    return ListCard(post: post, scrollController: scrollController);
   }
 }

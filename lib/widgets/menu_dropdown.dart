@@ -1,25 +1,25 @@
-// lib/widgets/post_list/post_menu_dropdown.dart
+// lib/widgets/post_list/menu_dropdown.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
-import '../../theme/app_theme.dart';
+import '../theme/app_theme.dart';
 
-class PostMenuDropdown extends StatefulWidget {
+class MenuDropdown extends StatefulWidget {
   final String postBody;
   final ScrollController? scrollController;
-  const PostMenuDropdown({
+  const MenuDropdown({
     super.key,
     required this.postBody,
     this.scrollController,
   });
 
   @override
-  State<PostMenuDropdown> createState() => _PostMenuDropdownState();
+  State<MenuDropdown> createState() => _MenuDropdownState();
 }
 
-class _PostMenuDropdownState extends State<PostMenuDropdown> {
+class _MenuDropdownState extends State<MenuDropdown> {
   shadcn.OverlayCompleter? _overlayCompleter;
 
   @override

@@ -1,18 +1,18 @@
-// lib/widgets/post_list/post_image.dart
+// lib/widgets/post_list/list_image.dart
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'post_card_skeleton.dart';
+import 'list_cardskeleton.dart';
 
-class PostImage extends StatefulWidget {
+class ListImage extends StatefulWidget {
   final String url;
-  const PostImage({super.key, required this.url});
+  const ListImage({super.key, required this.url});
 
   @override
-  State<PostImage> createState() => _PostImageState();
+  State<ListImage> createState() => _ListImageState();
 }
 
-class _PostImageState extends State<PostImage> {
+class _ListImageState extends State<ListImage> {
   double? aspectRatio;
 
   @override

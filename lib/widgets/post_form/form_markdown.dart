@@ -1,4 +1,4 @@
-// lib/widgets/post_form/post_form_markdown.dart
+// lib/widgets/post_form/form_markdown.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +24,6 @@ class MarkdownVisualController extends TextEditingController {
       onMatch: (match) {
         final fullMatch = match[0]!;
 
-        // 1. Bold: **text**
         if (fullMatch.startsWith('**') &&
             fullMatch.endsWith('**') &&
             fullMatch.length >= 4) {
@@ -42,9 +41,7 @@ class MarkdownVisualController extends TextEditingController {
           children.add(const TextSpan(
               text: '**',
               style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
-        }
-        // 2. Italic: *text*
-        else if (fullMatch.startsWith('*') &&
+        } else if (fullMatch.startsWith('*') &&
             fullMatch.endsWith('*') &&
             fullMatch.length >= 2) {
           final content = fullMatch.substring(1, fullMatch.length - 1);
@@ -61,9 +58,7 @@ class MarkdownVisualController extends TextEditingController {
           children.add(const TextSpan(
               text: '*',
               style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
-        }
-        // 3. Link: [text](url)
-        else if (fullMatch.startsWith('[') && fullMatch.contains('](')) {
+        } else if (fullMatch.startsWith('[') && fullMatch.contains('](')) {
           final closeBracket = fullMatch.indexOf('](');
           final linkText = fullMatch.substring(1, closeBracket);
 
@@ -89,16 +84,111 @@ class MarkdownVisualController extends TextEditingController {
   }
 }
 
-class PostFormMarkdown extends StatefulWidget {
+class FormMarkdown extends StatefulWidget {
   final TextEditingController controller;
-  const PostFormMarkdown({super.key, required this.controller});
+  const FormMarkdown({super.key, required this.controller});
 
   @override
-  State<PostFormMarkdown> createState() => _PostFormMarkdownState();
+  State<FormMarkdown> createState() => _FormMarkdownState();
 }
 
-class _PostFormMarkdownState extends State<PostFormMarkdown> {
-  double _editorHeight = 200; // Active resizable height
+class _FormMarkdownState extends State<FormMarkdown> {
+  double _editorHeight = 200;
+
+  String _previousText = '';
+  TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
+  bool _isProgrammaticChange = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousText = widget.controller.text;
+    _previousSelection = widget.controller.selection;
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  // Every programmatic edit in this file goes through here, so bookkeeping
+  // for the change-detector below always stays in sync and never mistakes
+  // our own edits for something the user typed.
+  void _setControllerState(String text, TextSelection selection) {
+    _isProgrammaticChange = true;
+    widget.controller.value = TextEditingValue(text: text, selection: selection);
+    _previousText = text;
+    _previousSelection = selection;
+    _isProgrammaticChange = false;
+  }
+
+  void _onControllerChanged() {
+    if (_isProgrammaticChange) return;
+
+    final text = widget.controller.text;
+    final selection = widget.controller.selection;
+
+    final oldCursor = _previousSelection.isValid ? _previousSelection.start : -1;
+
+    // Detect: exactly one '\n' was inserted right at the old cursor position
+    // and nothing else changed — i.e. the user pressed Enter with a
+    // collapsed selection, letting the text field insert its normal newline.
+    final isSingleNewlineInsert = selection.isValid &&
+        selection.isCollapsed &&
+        oldCursor >= 0 &&
+        selection.start == oldCursor + 1 &&
+        text.length == _previousText.length + 1 &&
+        oldCursor < text.length &&
+        text[oldCursor] == '\n' &&
+        text.substring(0, oldCursor) == _previousText.substring(0, oldCursor) &&
+        text.substring(oldCursor + 1) == _previousText.substring(oldCursor);
+
+    _previousText = text;
+    _previousSelection = selection;
+
+    if (isSingleNewlineInsert) {
+      _maybeContinueList(text, oldCursor);
+    }
+  }
+
+  void _maybeContinueList(String text, int newlineIndex) {
+    final prevLineStart = text.lastIndexOf('\n', newlineIndex - 1) + 1;
+    final prevLine = text.substring(prevLineStart, newlineIndex);
+
+    final bulletMatch = RegExp(r'^(\s*)-\s').firstMatch(prevLine);
+    final numberedMatch = RegExp(r'^(\s*)(\d+)\.\s').firstMatch(prevLine);
+
+    String? continuation;
+    bool prevLineIsEmptyPrefix = false;
+
+    if (bulletMatch != null) {
+      final indent = bulletMatch.group(1) ?? '';
+      continuation = '$indent- ';
+      prevLineIsEmptyPrefix = prevLine.trim() == '-';
+    } else if (numberedMatch != null) {
+      final indent = numberedMatch.group(1) ?? '';
+      final number = int.parse(numberedMatch.group(2)!);
+      continuation = '$indent${number + 1}. ';
+      prevLineIsEmptyPrefix = prevLine.trim() == '${numberedMatch.group(2)}.';
+    }
+
+    if (continuation == null) return;
+
+    if (prevLineIsEmptyPrefix) {
+      // Empty bullet/number + Enter = exit the list, not add another blank one.
+      final newText = text.replaceRange(prevLineStart, newlineIndex + 1, '');
+      _setControllerState(newText, TextSelection.collapsed(offset: prevLineStart));
+    } else {
+      final insertPos = newlineIndex + 1;
+      final newText = text.replaceRange(insertPos, insertPos, continuation);
+      _setControllerState(
+        newText,
+        TextSelection.collapsed(offset: insertPos + continuation.length),
+      );
+    }
+  }
 
   void _toggleFormat(String tag) {
     final text = widget.controller.text;
@@ -115,19 +205,17 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
             selectedText.substring(tag.length, selectedText.length - tag.length);
         final newText =
             text.replaceRange(selection.start, selection.end, unwrapped);
-        widget.controller.text = newText;
-        widget.controller.selection = TextSelection(
-          baseOffset: selection.start,
-          extentOffset: selection.start + unwrapped.length,
+        _setControllerState(
+          newText,
+          TextSelection(baseOffset: selection.start, extentOffset: selection.start + unwrapped.length),
         );
       } else {
         final wrapped = '$tag$selectedText$tag';
         final newText =
             text.replaceRange(selection.start, selection.end, wrapped);
-        widget.controller.text = newText;
-        widget.controller.selection = TextSelection(
-          baseOffset: selection.start,
-          extentOffset: selection.start + wrapped.length,
+        _setControllerState(
+          newText,
+          TextSelection(baseOffset: selection.start, extentOffset: selection.start + wrapped.length),
         );
       }
       return;
@@ -137,10 +225,12 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
     const placeholder = 'text';
     final inserted = '$tag$placeholder$tag';
     final newText = text.replaceRange(cursor, cursor, inserted);
-    widget.controller.text = newText;
-    widget.controller.selection = TextSelection(
-      baseOffset: cursor + tag.length,
-      extentOffset: cursor + tag.length + placeholder.length,
+    _setControllerState(
+      newText,
+      TextSelection(
+        baseOffset: cursor + tag.length,
+        extentOffset: cursor + tag.length + placeholder.length,
+      ),
     );
   }
 
@@ -209,12 +299,16 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
 
     if (result != null && mounted) {
       final linkMarkdown = '[${result['text']}](${result['url']})';
+      final currentText = widget.controller.text;
       if (selection.isValid) {
-        final newText =
-            text.replaceRange(selection.start, selection.end, linkMarkdown);
-        widget.controller.text = newText;
+        final newText = currentText.replaceRange(selection.start, selection.end, linkMarkdown);
+        _setControllerState(
+          newText,
+          TextSelection.collapsed(offset: selection.start + linkMarkdown.length),
+        );
       } else {
-        widget.controller.text = '$text$linkMarkdown';
+        final newText = '$currentText$linkMarkdown';
+        _setControllerState(newText, TextSelection.collapsed(offset: newText.length));
       }
     }
   }
@@ -224,10 +318,11 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
     final selection = widget.controller.selection;
     final cursor = selection.isValid ? selection.start : text.length;
 
-    final newText = text.replaceRange(cursor, cursor, '\n$prefix');
-    widget.controller.text = newText;
-    widget.controller.selection =
-        TextSelection.collapsed(offset: cursor + prefix.length + 1);
+    final needsNewlineBefore = cursor > 0 && text[cursor - 1] != '\n';
+    final insertion = needsNewlineBefore ? '\n$prefix' : prefix;
+
+    final newText = text.replaceRange(cursor, cursor, insertion);
+    _setControllerState(newText, TextSelection.collapsed(offset: cursor + insertion.length));
   }
 
   @override
@@ -253,7 +348,6 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
         ),
         child: Column(
           children: [
-            // Toolbar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -291,7 +385,6 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
                 ],
               ),
             ),
-            // Resizable TextArea Stack
             SizedBox(
               height: _editorHeight,
               child: Stack(
@@ -309,8 +402,6 @@ class _PostFormMarkdownState extends State<PostFormMarkdown> {
                       ),
                     ),
                   ),
-
-                  // Active drag corner directly over the bottom-right grip icon
                   Positioned(
                     bottom: 0,
                     right: 0,

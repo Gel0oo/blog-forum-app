@@ -1,18 +1,18 @@
-// lib/widgets/post_form/post_form_imagepicker.dart (Combined Picker + Preview)
+// lib/widgets/post_form/form_imagepicker.dart
 
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_theme.dart';
 
-class PostFormImagePicker extends StatelessWidget {
+class FormImagePicker extends StatelessWidget {
   final VoidCallback onTap;
   final List<dynamic> existingImages;
   final List<Uint8List> pickedImages;
   final ValueChanged<String> onRemoveExisting;
   final ValueChanged<int> onRemovePicked;
 
-  const PostFormImagePicker({
+  const FormImagePicker({
     super.key,
     required this.onTap,
     required this.existingImages,

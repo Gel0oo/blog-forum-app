@@ -1,10 +1,10 @@
-// lib/widgets/post_list/post_card_skeleton.dart
+// lib/widgets/post_list/list_cardskeleton.dart
 
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
-class PostCardSkeleton extends StatelessWidget {
-  const PostCardSkeleton({super.key});
+class ListCardSkeleton extends StatelessWidget {
+  const ListCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {

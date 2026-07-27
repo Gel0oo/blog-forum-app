@@ -1,4 +1,4 @@
-// lib/widgets/post_list/post_card.dart
+// lib/widgets/post_list/list_card.dart
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -9,16 +9,16 @@ import '../../theme/app_theme.dart';
 import '../../utils/time_ago.dart';
 import '../../supabase_config.dart';
 import '../../screens/posts/post_detail_screen.dart';
-import 'post_image.dart';
-import 'pill_button.dart';
-import 'post_menu_dropdown.dart';
-import 'image_viewer.dart';
+import 'list_image.dart';
+import '../pill_button.dart';
+import '../menu_dropdown.dart';
+import '../image_viewer.dart';
 
-class PostCard extends StatelessWidget {
+class ListCard extends StatelessWidget {
   final Map<String, dynamic> post;
   final ScrollController scrollController;
 
-  const PostCard({
+  const ListCard({
     super.key,
     required this.post,
     required this.scrollController,
@@ -97,7 +97,7 @@ class PostCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    PostMenuDropdown(
+                    MenuDropdown(
                       postBody: post['body'],
                       scrollController: scrollController,
                     ),
@@ -111,11 +111,15 @@ class PostCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
 
                 // Exact 2-line truncation with native '...'
-                Text(
-                  post['body'] ?? '',
+                Text.rich(
+                  TextSpan(
+                    children: _parseInlineMarkdown(
+                      post['body'] ?? '',
+                      AppTextStyles.body(context),
+                    ),
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body(context),
                 ),
 
                 if (images.isNotEmpty) ...[
@@ -133,7 +137,7 @@ class PostCard extends StatelessWidget {
                         },
                       );
                     },
-                    child: PostImage(url: images[0]['url']),
+                    child: ListImage(url: images[0]['url']),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.sm),
@@ -172,4 +176,56 @@ class PostCard extends StatelessWidget {
       ),
     );
   }
+}
+
+List<InlineSpan> _parseInlineMarkdown(String text, TextStyle baseStyle) {
+  text = text.replaceAllMapped(RegExp(r'^-\s+', multiLine: true), (_) => '•  ');
+
+  final pattern = RegExp(
+    r'(\*\*\*(.+?)\*\*\*)|(\*\*(.+?)\*\*)|(\*(.+?)\*)|(\[(.+?)\]\((.+?)\))',
+  );
+
+  final spans = <InlineSpan>[];
+  int lastEnd = 0;
+
+  for (final match in pattern.allMatches(text)) {
+    if (match.start > lastEnd) {
+      spans.add(
+        TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle),
+      );
+    }
+
+    if (match.group(1) != null) {
+      // ***bold italic***
+      spans.add(TextSpan(
+        text: match.group(2),
+        style: baseStyle.copyWith(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+      ));
+    } else if (match.group(3) != null) {
+      // **bold**
+      spans.add(TextSpan(
+        text: match.group(4),
+        style: baseStyle.copyWith(fontWeight: FontWeight.bold),
+      ));
+    } else if (match.group(5) != null) {
+      // *italic*
+      spans.add(TextSpan(
+        text: match.group(6),
+        style: baseStyle.copyWith(fontStyle: FontStyle.italic),
+      ));
+    } else if (match.group(7) != null) {
+      // [text](url) — styled as a link, not tappable in this truncated preview
+      spans.add(TextSpan(
+        text: match.group(8),
+        style: baseStyle.copyWith(decoration: TextDecoration.underline, color: AppColors.primary),
+      ));
+    }
+    lastEnd = match.end;
+  }
+
+  if (lastEnd < text.length) {
+    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+  }
+
+  return spans;
 }

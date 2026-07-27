@@ -1,3 +1,5 @@
+// lib/providers/comments_provider.dart
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../supabase_config.dart';
@@ -22,25 +24,50 @@ class CommentsProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    final from = page * pageSize;
-    final to = from + pageSize - 1;
+    try {
+      final from = page * pageSize;
+      final to = from + pageSize - 1;
 
-    final response = await supabase
-        .from('comments')
-        .select('*, comment_images(*)')
-        .eq('post_id', postId)
-        .order('created_at', ascending: true)
-        .range(from, to)
-        .count(CountOption.exact);
+      // 1. Fetch comments and attached comment images
+      final response = await supabase
+          .from('comments')
+          .select('*, comment_images(*)')
+          .eq('post_id', postId)
+          .order('created_at', ascending: true)
+          .range(from, to)
+          .count(CountOption.exact);
 
-    final newComments = List<Map<String, dynamic>>.from(response.data);
-    totalCount = response.count;
+      final newComments = List<Map<String, dynamic>>.from(response.data);
+      totalCount = response.count;
 
-    if (comments.length + newComments.length >= totalCount) hasMore = false;
-    comments.addAll(newComments);
-    page++;
-    isLoading = false;
-    notifyListeners();
+      // 2. Fetch author profiles by user_ids (Matches PostsProvider pattern)
+      final userIds = newComments
+          .map((c) => c['user_id'] as String)
+          .toSet()
+          .toList();
+
+      if (userIds.isNotEmpty) {
+        final profilesResponse = await supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .inFilter('id', userIds);
+
+        final profilesById = {for (final p in profilesResponse) p['id']: p};
+
+        for (final comment in newComments) {
+          comment['author'] = profilesById[comment['user_id']];
+        }
+      }
+
+      if (comments.length + newComments.length >= totalCount) hasMore = false;
+      comments.addAll(newComments);
+      page++;
+    } catch (e) {
+      debugPrint('Error fetching comments: $e');
+    } finally {
+      isLoading = false; // Guarantees loading state resets even on error
+      notifyListeners();
+    }
   }
 
   int get remainingCount => (totalCount - comments.length).clamp(0, totalCount);
@@ -79,12 +106,7 @@ class CommentsProvider extends ChangeNotifier {
       uploadedImages.add(imageRow);
     }
 
-    final newComment = Map<String, dynamic>.from(commentResponse);
-    newComment['comment_images'] = uploadedImages;
-
-    comments.add(newComment);
-    totalCount++;
-    notifyListeners();
+    await fetchComments(postId, refresh: true);
   }
 
   Future<void> updateComment({

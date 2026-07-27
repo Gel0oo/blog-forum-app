@@ -10,8 +10,8 @@ import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../providers/posts_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_app_bar.dart';
-import '../../widgets/post_form/post_form_markdown.dart';
-import '../../widgets/post_form/post_form_imagepicker.dart';
+import '../../widgets/post_form/form_markdown.dart';
+import '../../widgets/post_form/form_imagepicker.dart';
 
 class PostFormScreen extends StatefulWidget {
   final Map<String, dynamic>? existingPost;
@@ -151,11 +151,11 @@ class _PostFormScreenState extends State<PostFormScreen> {
                 const SizedBox(height: 16),
 
                 // Markdown Editor Component
-                PostFormMarkdown(controller: bodyController),
+                FormMarkdown(controller: bodyController),
                 const SizedBox(height: 16),
 
                 // Combined Image Picker & Preview Grid Component
-                PostFormImagePicker(
+                FormImagePicker(
                   onTap: pickImages,
                   existingImages: existingImages,
                   pickedImages: pickedImages,

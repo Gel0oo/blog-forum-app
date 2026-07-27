@@ -1,4 +1,4 @@
-// lib/widgets/post_list/side_content.dart
+// lib/widgets/post_list/list_sidecontent.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,8 +10,8 @@ import '../../theme/app_theme.dart';
 import '../../screens/posts/post_form_screen.dart';
 import '../../screens/posts/post_detail_screen.dart';
 
-class SideContent extends StatelessWidget {
-  const SideContent({super.key});
+class ListSideContent extends StatelessWidget {
+  const ListSideContent({super.key});
 
   @override
   Widget build(BuildContext context) {

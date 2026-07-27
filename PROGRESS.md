@@ -21,7 +21,7 @@
 ## Polishing (gotta make the website beautiful right?)
 - [x] 1. Show author name + avatar on posts and comments
 - [x] 2. Relative timestamps ("e.g. 2w/d/h/m/now ago")
-- [ ] 3. Empty states ("No posts yet", "No comments yet")
+- [x] 3. Empty states ("No posts yet", "No comments yet")
 - [x] 4. Comment count shown on post list cards
 - [x] 5. Visual/style pass using design reference (spacing, colors, typography)
 - [x] 6. Tap-to-enlarge image viewer
@@ -33,6 +33,7 @@
 - Image files live in Supabase Storage; DB only stores the resulting URL (post_images.url & comment_images.url).
 - Storage bucket is Public (handles reads), 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
 - Should have a tap to enlarge image view for comments and posts.
+- An actual button for the dark/light mode.
 
 ## Environment
 - Supabase project name: blog_forum_app
