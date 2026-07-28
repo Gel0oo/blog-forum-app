@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,7 +34,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    // 1. Client-side Validation
     if (email.isEmpty || password.isEmpty) {
       setState(() => error = 'Please enter both email and password.');
       return;
@@ -46,7 +46,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await context.read<AuthProvider>().signIn(email, password);
-      if (mounted) context.go('/');
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/');
+        }
+      }
     } catch (e) {
       final errStr = e.toString().toLowerCase();
       if (errStr.contains('invalid login credentials') ||
@@ -86,7 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header: Title centered on exact same row as X button
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -105,7 +110,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           size: 20,
                           color: AppColors.textSecondary(context),
                         ),
-                        onPressed: () => context.go('/'),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            context.go('/');
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -117,7 +128,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: AppTextStyles.body(context, size: 12),
                 ),
                 const SizedBox(height: 24),
-                // Email
                 shadcn.TextField(
                   controller: emailController,
                   borderRadius: BorderRadius.circular(999),
@@ -128,7 +138,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   features: const [shadcn.InputFeature.clear()],
                 ),
                 const SizedBox(height: 12),
-                // Password
                 shadcn.TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -152,7 +161,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                // Sign Up Switch Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -161,7 +169,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: AppTextStyles.body(context, size: 13),
                     ),
                     GestureDetector(
-                      onTap: () => context.go('/register'),
+                      onTap: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.transparent,
+                            builder: (_) => const RegisterScreen(),
+                          );
+                        } else {
+                          context.go('/register');
+                        }
+                      },
                       child: const Text(
                         'Sign Up',
                         style: TextStyle(
@@ -174,7 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Centered Log In Button
                 SizedBox(
                   height: 42,
                   child: shadcn.PrimaryButton(

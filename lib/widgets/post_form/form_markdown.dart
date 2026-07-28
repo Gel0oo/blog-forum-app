@@ -27,48 +27,52 @@ class MarkdownVisualController extends TextEditingController {
         if (fullMatch.startsWith('**') &&
             fullMatch.endsWith('**') &&
             fullMatch.length >= 4) {
-          final content = fullMatch.substring(2, fullMatch.length - 2);
-          children.add(const TextSpan(
-              text: '**',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
-          children.add(TextSpan(
-            text: content,
-            style: (style ?? const TextStyle()).copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary(context),
+          children.add(
+            TextSpan(
+              text: fullMatch,
+              style: (style ?? const TextStyle()).copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary(context),
+              ),
             ),
-          ));
-          children.add(const TextSpan(
-              text: '**',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+          );
         } else if (fullMatch.startsWith('*') &&
             fullMatch.endsWith('*') &&
             fullMatch.length >= 2) {
-          final content = fullMatch.substring(1, fullMatch.length - 1);
-          children.add(const TextSpan(
-              text: '*',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
-          children.add(TextSpan(
-            text: content,
-            style: (style ?? const TextStyle()).copyWith(
-              fontStyle: FontStyle.italic,
-              color: AppColors.textPrimary(context),
+          children.add(
+            TextSpan(
+              text: fullMatch,
+              style: (style ?? const TextStyle()).copyWith(
+                fontStyle: FontStyle.italic,
+                color: AppColors.textPrimary(context),
+              ),
             ),
-          ));
-          children.add(const TextSpan(
-              text: '*',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
-        } else if (fullMatch.startsWith('[') && fullMatch.contains('](')) {
+          );
+        } else if (fullMatch.startsWith('[') &&
+            fullMatch.contains('](') &&
+            fullMatch.endsWith(')')) {
           final closeBracket = fullMatch.indexOf('](');
           final linkText = fullMatch.substring(1, closeBracket);
+          final url = fullMatch.substring(
+            closeBracket + 2,
+            fullMatch.length - 1,
+          );
 
-          children.add(TextSpan(
-            text: linkText,
-            style: (style ?? const TextStyle()).copyWith(
-              color: AppColors.primary,
-              decoration: TextDecoration.underline,
+          final muted = TextStyle(color: AppColors.textSecondary(context));
+
+          children.add(TextSpan(text: '[', style: muted));
+          children.add(
+            TextSpan(
+              text: linkText,
+              style: (style ?? const TextStyle()).copyWith(
+                color: AppColors.primary,
+                decoration: TextDecoration.underline,
+              ),
             ),
-          ));
+          );
+          children.add(TextSpan(text: '](', style: muted));
+          children.add(TextSpan(text: url, style: muted));
+          children.add(TextSpan(text: ')', style: muted));
         } else {
           children.add(TextSpan(text: fullMatch, style: style));
         }
@@ -118,7 +122,10 @@ class _FormMarkdownState extends State<FormMarkdown> {
   // our own edits for something the user typed.
   void _setControllerState(String text, TextSelection selection) {
     _isProgrammaticChange = true;
-    widget.controller.value = TextEditingValue(text: text, selection: selection);
+    widget.controller.value = TextEditingValue(
+      text: text,
+      selection: selection,
+    );
     _previousText = text;
     _previousSelection = selection;
     _isProgrammaticChange = false;
@@ -130,12 +137,15 @@ class _FormMarkdownState extends State<FormMarkdown> {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
 
-    final oldCursor = _previousSelection.isValid ? _previousSelection.start : -1;
+    final oldCursor = _previousSelection.isValid
+        ? _previousSelection.start
+        : -1;
 
     // Detect: exactly one '\n' was inserted right at the old cursor position
     // and nothing else changed — i.e. the user pressed Enter with a
     // collapsed selection, letting the text field insert its normal newline.
-    final isSingleNewlineInsert = selection.isValid &&
+    final isSingleNewlineInsert =
+        selection.isValid &&
         selection.isCollapsed &&
         oldCursor >= 0 &&
         selection.start == oldCursor + 1 &&
@@ -179,7 +189,10 @@ class _FormMarkdownState extends State<FormMarkdown> {
     if (prevLineIsEmptyPrefix) {
       // Empty bullet/number + Enter = exit the list, not add another blank one.
       final newText = text.replaceRange(prevLineStart, newlineIndex + 1, '');
-      _setControllerState(newText, TextSelection.collapsed(offset: prevLineStart));
+      _setControllerState(
+        newText,
+        TextSelection.collapsed(offset: prevLineStart),
+      );
     } else {
       final insertPos = newlineIndex + 1;
       final newText = text.replaceRange(insertPos, insertPos, continuation);
@@ -201,21 +214,35 @@ class _FormMarkdownState extends State<FormMarkdown> {
       if (selectedText.startsWith(tag) &&
           selectedText.endsWith(tag) &&
           selectedText.length >= tag.length * 2) {
-        final unwrapped =
-            selectedText.substring(tag.length, selectedText.length - tag.length);
-        final newText =
-            text.replaceRange(selection.start, selection.end, unwrapped);
+        final unwrapped = selectedText.substring(
+          tag.length,
+          selectedText.length - tag.length,
+        );
+        final newText = text.replaceRange(
+          selection.start,
+          selection.end,
+          unwrapped,
+        );
         _setControllerState(
           newText,
-          TextSelection(baseOffset: selection.start, extentOffset: selection.start + unwrapped.length),
+          TextSelection(
+            baseOffset: selection.start,
+            extentOffset: selection.start + unwrapped.length,
+          ),
         );
       } else {
         final wrapped = '$tag$selectedText$tag';
-        final newText =
-            text.replaceRange(selection.start, selection.end, wrapped);
+        final newText = text.replaceRange(
+          selection.start,
+          selection.end,
+          wrapped,
+        );
         _setControllerState(
           newText,
-          TextSelection(baseOffset: selection.start, extentOffset: selection.start + wrapped.length),
+          TextSelection(
+            baseOffset: selection.start,
+            extentOffset: selection.start + wrapped.length,
+          ),
         );
       }
       return;
@@ -246,54 +273,99 @@ class _FormMarkdownState extends State<FormMarkdown> {
 
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Insert Link'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: linkTextController,
-              decoration: const InputDecoration(
-                labelText: 'Display Text',
-                hintText: 'e.g. My Website',
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 380,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground(context),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border(context)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 16,
+                offset: Offset(0, 8),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'URL',
-                hintText: 'e.g. https://example.com',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              final rawUrl = urlController.text.trim();
-              if (rawUrl.isEmpty) {
-                Navigator.pop(context);
-                return;
-              }
-              final formattedUrl =
-                  rawUrl.startsWith('http') ? rawUrl : 'https://$rawUrl';
-              final displayText = linkTextController.text.trim().isEmpty
-                  ? formattedUrl
-                  : linkTextController.text.trim();
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Insert Link',
+                style: AppTextStyles.heading(context, size: 18),
+              ),
+              const SizedBox(height: 16),
+              shadcn.TextField(
+                controller: linkTextController,
+                borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                placeholder: Text(
+                  'Display Text',
+                  style: AppTextStyles.body(context, size: 13),
+                ),
+                features: const [shadcn.InputFeature.clear()],
+              ),
+              const SizedBox(height: 12),
+              shadcn.TextField(
+                controller: urlController,
+                borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                placeholder: Text(
+                  'URL (e.g. https://example.com)',
+                  style: AppTextStyles.body(context, size: 13),
+                ),
+                features: const [shadcn.InputFeature.clear()],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  shadcn.SecondaryButton(
+                    density: shadcn.ButtonDensity.dense,
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  shadcn.PrimaryButton(
+                    density: shadcn.ButtonDensity.dense,
+                    onPressed: () {
+                      final rawUrl = urlController.text.trim();
+                      if (rawUrl.isEmpty) {
+                        Navigator.pop(context);
+                        return;
+                      }
+                      final formattedUrl = rawUrl.startsWith('http')
+                          ? rawUrl
+                          : 'https://$rawUrl';
+                      final displayText = linkTextController.text.trim().isEmpty
+                          ? formattedUrl
+                          : linkTextController.text.trim();
 
-              Navigator.pop(context, {
-                'text': displayText,
-                'url': formattedUrl,
-              });
-            },
-            child: const Text('Insert'),
+                      Navigator.pop(context, {
+                        'text': displayText,
+                        'url': formattedUrl,
+                      });
+                    },
+                    child: const Text(
+                      'Insert',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
 
@@ -301,14 +373,23 @@ class _FormMarkdownState extends State<FormMarkdown> {
       final linkMarkdown = '[${result['text']}](${result['url']})';
       final currentText = widget.controller.text;
       if (selection.isValid) {
-        final newText = currentText.replaceRange(selection.start, selection.end, linkMarkdown);
+        final newText = currentText.replaceRange(
+          selection.start,
+          selection.end,
+          linkMarkdown,
+        );
         _setControllerState(
           newText,
-          TextSelection.collapsed(offset: selection.start + linkMarkdown.length),
+          TextSelection.collapsed(
+            offset: selection.start + linkMarkdown.length,
+          ),
         );
       } else {
         final newText = '$currentText$linkMarkdown';
-        _setControllerState(newText, TextSelection.collapsed(offset: newText.length));
+        _setControllerState(
+          newText,
+          TextSelection.collapsed(offset: newText.length),
+        );
       }
     }
   }
@@ -322,7 +403,10 @@ class _FormMarkdownState extends State<FormMarkdown> {
     final insertion = needsNewlineBefore ? '\n$prefix' : prefix;
 
     final newText = text.replaceRange(cursor, cursor, insertion);
-    _setControllerState(newText, TextSelection.collapsed(offset: cursor + insertion.length));
+    _setControllerState(
+      newText,
+      TextSelection.collapsed(offset: cursor + insertion.length),
+    );
   }
 
   @override
@@ -337,7 +421,8 @@ class _FormMarkdownState extends State<FormMarkdown> {
             _toggleFormat('*'),
         const SingleActivator(LogicalKeyboardKey.keyI, meta: true): () =>
             _toggleFormat('*'),
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true): _promptLink,
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _promptLink,
         const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _promptLink,
       },
       child: Container(

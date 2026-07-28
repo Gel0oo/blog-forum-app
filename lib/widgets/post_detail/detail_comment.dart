@@ -47,10 +47,10 @@ class _DetailCommentState extends State<DetailComment> {
     setState(() => isPosting = true);
     try {
       await context.read<CommentsProvider>().createComment(
-            postId: widget.postId,
-            body: commentController.text.trim(),
-            imageBytes: commentImages,
-          );
+        postId: widget.postId,
+        body: commentController.text.trim(),
+        imageBytes: commentImages,
+      );
       commentController.clear();
       setState(() => commentImages.clear());
     } finally {
@@ -65,10 +65,7 @@ class _DetailCommentState extends State<DetailComment> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Comment'),
-        content: TextField(
-          controller: editController,
-          maxLines: 3,
-        ),
+        content: TextField(controller: editController, maxLines: 3),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -84,12 +81,12 @@ class _DetailCommentState extends State<DetailComment> {
 
     if (newBody != null && newBody.trim().isNotEmpty && mounted) {
       await context.read<CommentsProvider>().updateComment(
-            commentId: comment['id'],
-            postId: widget.postId,
-            body: newBody.trim(),
-            newImageBytes: [],
-            imageIdsToDelete: [],
-          );
+        commentId: comment['id'],
+        postId: widget.postId,
+        body: newBody.trim(),
+        newImageBytes: [],
+        imageIdsToDelete: [],
+      );
     }
   }
 
@@ -172,7 +169,8 @@ class _DetailCommentState extends State<DetailComment> {
                           right: -4,
                           child: GestureDetector(
                             onTap: () => setState(
-                                () => commentImages.removeAt(entry.key)),
+                              () => commentImages.removeAt(entry.key),
+                            ),
                             child: Container(
                               decoration: const BoxDecoration(
                                 color: Colors.red,
@@ -201,9 +199,13 @@ class _DetailCommentState extends State<DetailComment> {
           Column(
             children: List.generate(
               3,
-              (_) => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: SkeletonBox(height: 48, width: double.infinity),
+              (_) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: SkeletonBox(
+                  height: 48,
+                  width: double.infinity,
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           )
@@ -261,7 +263,9 @@ class _DetailCommentState extends State<DetailComment> {
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
-                              minWidth: 28, minHeight: 28),
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
                           icon: Icon(
                             LucideIcons.pencil,
                             size: 14,
@@ -272,7 +276,9 @@ class _DetailCommentState extends State<DetailComment> {
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
-                              minWidth: 28, minHeight: 28),
+                            minWidth: 28,
+                            minHeight: 28,
+                          ),
                           icon: const Icon(
                             LucideIcons.trash2,
                             size: 14,
@@ -280,10 +286,7 @@ class _DetailCommentState extends State<DetailComment> {
                           ),
                           onPressed: () => context
                               .read<CommentsProvider>()
-                              .deleteComment(
-                                comment['id'],
-                                widget.postId,
-                              ),
+                              .deleteComment(comment['id'], widget.postId),
                         ),
                       ],
                     ],
@@ -351,9 +354,9 @@ class _DetailCommentState extends State<DetailComment> {
           if (commentsProvider.hasMore && commentsProvider.remainingCount > 0)
             Center(
               child: TextButton(
-                onPressed: () => context
-                    .read<CommentsProvider>()
-                    .fetchComments(widget.postId),
+                onPressed: () => context.read<CommentsProvider>().fetchComments(
+                  widget.postId,
+                ),
                 child: Text(
                   'Show ${commentsProvider.remainingCount} more comments',
                   style: const TextStyle(color: AppColors.primary),

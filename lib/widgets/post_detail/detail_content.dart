@@ -1,9 +1,11 @@
 // lib/widgets/post_detail/detail_content.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../theme/app_theme.dart';
@@ -12,7 +14,7 @@ import '../../supabase_config.dart';
 import '../pill_button.dart';
 import '../menu_dropdown.dart';
 import '../post_list/list_image.dart';
-import '../image_viewer.dart'; // Import shared ImageViewer
+import '../image_viewer.dart';
 
 class DetailContent extends StatelessWidget {
   final Map<String, dynamic> post;
@@ -73,7 +75,7 @@ class DetailContent extends StatelessWidget {
                   ],
                 ),
               ),
-              MenuDropdown(postBody: post['body'] ?? ''),
+              MenuDropdown(post: post, postBody: post['body'] ?? ''),
             ],
           ),
           const SizedBox(height: 16),
@@ -86,6 +88,11 @@ class DetailContent extends StatelessWidget {
 
           MarkdownBody(
             data: post['body'] ?? '',
+            onTapLink: (text, href, title) {
+              if (href != null && href.isNotEmpty) {
+                launchUrl(Uri.parse(href));
+              }
+            },
             styleSheet: MarkdownStyleSheet(
               p: TextStyle(
                 fontSize: 15,
@@ -111,7 +118,6 @@ class DetailContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Images wrapped with ListImageViewer on tap
           if (images.isNotEmpty) ...[
             ...images.map((img) {
               final url = img['url'] as String;
@@ -136,7 +142,6 @@ class DetailContent extends StatelessWidget {
             }),
           ],
 
-          // Action Pills (Removed extra double SizedBox gap)
           Row(
             children: [
               PillButton(
@@ -158,7 +163,16 @@ class DetailContent extends StatelessWidget {
               const SizedBox(width: 8),
               PillButton(
                 icon: LucideIcons.cornerUpRight,
-                onTap: () {},
+                onTap: () {
+                  final shareUrl = '${Uri.base.origin}/#/post/${post['id']}';
+                  Clipboard.setData(ClipboardData(text: shareUrl));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Post link copied to clipboard!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
               ),
             ],
           ),

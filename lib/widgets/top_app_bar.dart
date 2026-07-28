@@ -6,13 +6,15 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
+import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/posts_provider.dart';
+import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 import '../screens/profile/profile_screen.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../providers/theme_provider.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/register_screen.dart';
 
 class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TopAppBar({super.key});
@@ -33,21 +35,30 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: false,
       title: Row(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset('assets/logo.svg', width: 64, height: 64),
-              const SizedBox(width: 8),
-              Text(
-                'Postly',
-                style: GoogleFonts.getFont(
-                  'Fira Sans',
-                  fontSize: 26,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              context.go('/');
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset('assets/logo.svg', width: 64, height: 64),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Postly',
+                    style: GoogleFonts.getFont(
+                      'Fira Sans',
+                      fontSize: 26,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
           const Spacer(),
           SizedBox(width: 500, height: 50, child: const _SearchField()),
@@ -72,10 +83,12 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: shadcn.PrimaryButton(
-              density: shadcn
-                  .ButtonDensity
-                  .normal, // <--- Manages compact button height without clipping text
-              onPressed: () => context.go('/login'),
+              density: shadcn.ButtonDensity.normal,
+              onPressed: () => showDialog(
+                context: context,
+                barrierColor: Colors.transparent,
+                builder: (_) => const LoginScreen(),
+              ),
               child: const Text(
                 'Login',
                 style: TextStyle(
@@ -86,14 +99,16 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-          // Register Pill (Secondary Button)
+          // Register Pill
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: shadcn.SecondaryButton(
-              density: shadcn
-                  .ButtonDensity
-                  .normal, // <--- Manages compact button height without clipping text
-              onPressed: () => context.go('/register'),
+              density: shadcn.ButtonDensity.normal,
+              onPressed: () => showDialog(
+                context: context,
+                barrierColor: Colors.transparent,
+                builder: (_) => const RegisterScreen(),
+              ),
               child: const Text(
                 'Register',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
@@ -228,25 +243,22 @@ class _ProfileMenu extends StatelessWidget {
                           },
                           child: const Text('Profile'),
                         ),
-
-                        // Light / Dark Mode Toggle item with Sun/Moon Icon and Switch
                         shadcn.MenuButton(
                           leading: Icon(
                             isDark ? LucideIcons.moon : LucideIcons.sun,
                             size: 18,
                           ),
-                          trailing: shadcn.Switch(
-                            value: isDark,
-                            onChanged: (val) {
-                              context.read<ThemeProvider>().toggleTheme(val);
-                            },
+                          trailing: IgnorePointer(
+                            child: shadcn.Switch(
+                              value: isDark,
+                              onChanged: (_) {},
+                            ),
                           ),
                           onPressed: (context) {
-                            context.read<ThemeProvider>().toggleTheme(!isDark);
+                            themeProvider.toggleTheme(!isDark);
                           },
                           child: Text(isDark ? 'Dark Mode' : 'Light Mode'),
                         ),
-
                         shadcn.MenuButton(
                           leading: const Icon(LucideIcons.logOut, size: 18),
                           onPressed: (context) {

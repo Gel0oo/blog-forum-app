@@ -2,6 +2,7 @@
 
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'supabase_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/posts_provider.dart';
@@ -16,8 +17,15 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  GoRouter? _router;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +40,7 @@ class MyApp extends StatelessWidget {
         builder: (context) {
           final authProvider = context.watch<AuthProvider>();
           final themeProvider = context.watch<ThemeProvider>();
+          _router ??= buildRouter(authProvider);
 
           return ShadcnApp.router(
             debugShowCheckedModeBanner: false,
@@ -48,10 +57,8 @@ class MyApp extends StatelessWidget {
               ).copyWith(primary: () => AppColors.primary, ring: () => AppColors.primary),
               scaling: 1.15,
             ),
-            routerConfig: buildRouter(authProvider),
+            routerConfig: _router!,
             builder: (context, child) {
-              // Force animations on regardless of the OS "reduce motion" setting,
-              // so every visitor sees the same popover/transition behavior you do.
               return MediaQuery(
                 data: MediaQuery.of(context).copyWith(disableAnimations: false),
                 child: child!,

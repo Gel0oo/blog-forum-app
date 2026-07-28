@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/posts/post_list_screen.dart';
+import 'screens/posts/post_detail_screen.dart';
 
 GoRouter buildRouter(AuthProvider authProvider) {
   return GoRouter(
@@ -23,7 +24,6 @@ GoRouter buildRouter(AuthProvider authProvider) {
     routes: [
       ShellRoute(
         builder: (context, state, child) {
-          // PostListScreen stays persistently mounted in background
           return Stack(
             children: [
               const PostListScreen(),
@@ -37,6 +37,10 @@ GoRouter buildRouter(AuthProvider authProvider) {
           GoRoute(path: '/login', builder: (context, state) => const SizedBox.shrink()),
           GoRoute(path: '/register', builder: (context, state) => const SizedBox.shrink()),
         ],
+      ),
+      GoRoute(
+        path: '/post/:id',
+        builder: (context, state) => PostDetailScreen(postId: state.pathParameters['id']),
       ),
     ],
   );

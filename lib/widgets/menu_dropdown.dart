@@ -2,15 +2,22 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
-import '../theme/app_theme.dart';
+import '../../providers/posts_provider.dart';
+import '../../supabase_config.dart';
+import '../../theme/app_theme.dart';
+import '../../screens/posts/post_form_screen.dart';
 
 class MenuDropdown extends StatefulWidget {
+  final Map<String, dynamic>? post;
   final String postBody;
   final ScrollController? scrollController;
+
   const MenuDropdown({
     super.key,
+    this.post,
     required this.postBody,
     this.scrollController,
   });
@@ -42,8 +49,45 @@ class _MenuDropdownState extends State<MenuDropdown> {
     }
   }
 
+  Future<void> _confirmDelete() async {
+    _overlayCompleter?.close();
+    _overlayCompleter = null;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && widget.post != null && mounted) {
+      await context.read<PostsProvider>().deletePost(widget.post!['id']);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post deleted successfully.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentUserId = supabase.auth.currentUser?.id;
+    final isOwner =
+        widget.post != null && widget.post!['user_id'] == currentUserId;
+
     return Builder(
       builder: (btnContext) {
         return IconButton(
@@ -93,14 +137,50 @@ class _MenuDropdownState extends State<MenuDropdown> {
                           },
                           child: const Text('Copy text'),
                         ),
-                        shadcn.MenuButton(
-                          leading: const Icon(LucideIcons.flag, size: 18),
-                          onPressed: (context) {
-                            _overlayCompleter?.close();
-                            _overlayCompleter = null;
-                          },
-                          child: const Text('Report'),
-                        ),
+                        if (isOwner) ...[
+                          shadcn.MenuButton(
+                            leading: const Icon(LucideIcons.pencil, size: 18),
+                            onPressed: (context) {
+                              _overlayCompleter?.close();
+                              _overlayCompleter = null;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      PostFormScreen(existingPost: widget.post),
+                                ),
+                              );
+                            },
+                            child: const Text('Edit post'),
+                          ),
+                          shadcn.MenuButton(
+                            leading: const Icon(
+                              LucideIcons.trash2,
+                              size: 18,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: (_) => _confirmDelete(),
+                            child: const Text(
+                              'Delete post',
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
+                          ),
+                        ] else ...[
+                          shadcn.MenuButton(
+                            leading: const Icon(LucideIcons.flag, size: 18),
+                            onPressed: (context) {
+                              _overlayCompleter?.close();
+                              _overlayCompleter = null;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'This does not work as of now :)',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text('Report'),
+                          ),
+                        ],
                       ],
                     ),
                   ),

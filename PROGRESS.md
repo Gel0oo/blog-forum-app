@@ -21,11 +21,19 @@
 ## Polishing (gotta make the website beautiful right?)
 - [x] 1. Show author name + avatar on posts and comments
 - [x] 2. Relative timestamps ("e.g. 2w/d/h/m/now ago")
-- [x] 3. Empty states ("No posts yet", "No comments yet")
+- [x] 3. Empty states ("No comments yet", etc.)
 - [x] 4. Comment count shown on post list cards
 - [x] 5. Visual/style pass using design reference (spacing, colors, typography)
 - [x] 6. Tap-to-enlarge image viewer
 - [x] 7. Dark/Light Mode
+- [ ] 8. Mobile browser compatible
+- [ ] 9. Report button doesnt work. No actual functionality yet :D
+
+## Few bug fixes
+- [x] Postly Logo does not take you to the main page.
+- [x] Light/Dark mode switch is going back to the very top of the page.
+- [x] Hyperlink not work, need actual popup to input the link
+- [x] importantly, the login/register popup. Not popping up on post_list
 
 ## Key Decisions
 - Images stored as separate rows (post_images, comment_images) not array columns, makes us so that they can delete individual images without rewriting a whole array.

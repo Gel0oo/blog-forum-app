@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -50,7 +51,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await context.read<AuthProvider>().signUp(email, password);
-      if (mounted) context.go('/');
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/');
+        }
+      }
     } catch (e) {
       setState(() => error = 'Registration failed. Please try again.');
     } finally {
@@ -84,7 +91,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header: Title centered on exact same row as X button
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -103,7 +109,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           size: 20,
                           color: AppColors.textSecondary(context),
                         ),
-                        onPressed: () => context.go('/'),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            context.go('/');
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -115,7 +127,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: AppTextStyles.body(context, size: 12),
                 ),
                 const SizedBox(height: 24),
-                // Email
                 shadcn.TextField(
                   controller: emailController,
                   borderRadius: BorderRadius.circular(999),
@@ -126,7 +137,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   features: const [shadcn.InputFeature.clear()],
                 ),
                 const SizedBox(height: 12),
-                // Password
                 shadcn.TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -150,7 +160,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                // Log In Switch Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -159,7 +168,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: AppTextStyles.body(context, size: 13),
                     ),
                     GestureDetector(
-                      onTap: () => context.go('/login'),
+                      onTap: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.transparent,
+                            builder: (_) => const LoginScreen(),
+                          );
+                        } else {
+                          context.go('/login');
+                        }
+                      },
                       child: const Text(
                         'Log In',
                         style: TextStyle(
@@ -172,7 +192,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Centered Sign Up Button
                 SizedBox(
                   height: 42,
                   child: shadcn.PrimaryButton(

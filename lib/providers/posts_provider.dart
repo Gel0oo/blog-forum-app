@@ -55,6 +55,35 @@ class PostsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Map<String, dynamic>?> fetchPostById(String id) async {
+    final existingIndex = posts.indexWhere((p) => p['id'] == id);
+    if (existingIndex != -1) return posts[existingIndex];
+
+    final response = await supabase
+        .from('posts')
+        .select('*, post_images(*), comments(count), post_likes(user_id)')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (response == null) return null;
+
+    final post = Map<String, dynamic>.from(response);
+    final userId = post['user_id'] as String;
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+
+    if (profileResponse != null) {
+      post['author'] = profileResponse;
+    }
+
+    posts.add(post);
+    notifyListeners();
+    return post;
+  }
+
   // User creates post with title, body and images.
   Future<void> createPost({
     required String title,
