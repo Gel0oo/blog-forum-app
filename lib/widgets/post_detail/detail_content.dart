@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -96,22 +97,31 @@ class DetailContent extends StatelessWidget {
               }
             },
             styleSheet: MarkdownStyleSheet(
-              p: TextStyle(fontSize: 15, color: AppColors.textPrimary(context)),
-              listBullet: TextStyle(
-                fontSize: 15,
+              p: AppTextStyles.body(
+                context,
+                size: 15,
                 color: AppColors.textPrimary(context),
               ),
-              strong: TextStyle(
+              listBullet: AppTextStyles.body(
+                context,
+                size: 15,
+                color: AppColors.textPrimary(context),
+              ),
+              strong: GoogleFonts.nunito(
+                fontSize: 15,
                 color: AppColors.textPrimary(context),
                 fontWeight: FontWeight.bold,
               ),
-              em: TextStyle(
+              em: GoogleFonts.nunito(
+                fontSize: 15,
                 color: AppColors.textPrimary(context),
                 fontStyle: FontStyle.italic,
               ),
-              a: const TextStyle(
+              a: GoogleFonts.nunito(
+                fontSize: 15,
                 color: AppColors.primary,
                 decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

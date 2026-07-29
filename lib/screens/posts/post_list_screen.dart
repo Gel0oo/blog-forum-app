@@ -123,7 +123,7 @@ class _PostListScreenState extends State<PostListScreen>
             ),
           );
 
-          // 2. Initial Loading State (Featured Hero Skeleton + 3-Column Grid Skeletons)
+          // 2. Loading or Empty State
           if (postsProvider.isLoading && postsProvider.posts.isEmpty) {
             feedItems.add(
               const Padding(
@@ -197,29 +197,26 @@ class _PostListScreenState extends State<PostListScreen>
               feedItems.add(
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (int col = 0; col < columns; col++) ...[
-                          if (col > 0) const SizedBox(width: AppSpacing.lg),
-                          Expanded(
-                            child: col < rowPosts.length
-                                ? ListCard(
-                                    post: rowPosts[col],
-                                    scrollController: scrollController,
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        ],
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (int col = 0; col < columns; col++) ...[
+                        if (col > 0) const SizedBox(width: AppSpacing.lg),
+                        Expanded(
+                          child: col < rowPosts.length
+                              ? ListCard(
+                                  post: rowPosts[col],
+                                  scrollController: scrollController,
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               );
             }
 
-            // 5. Pagination Loading Row
             if (postsProvider.hasMore) {
               feedItems.add(
                 Padding(

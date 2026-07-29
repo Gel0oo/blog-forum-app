@@ -23,7 +23,7 @@ class PostFormScreen extends StatefulWidget {
 
 class _PostFormScreenState extends State<PostFormScreen> {
   final titleController = TextEditingController();
-  late final TextEditingController bodyController; // <--- Change to late final
+  late final TextEditingController bodyController;
   final List<Uint8List> pickedImages = [];
   final List<String> imageIdsToDelete = [];
   List<dynamic> existingImages = [];
@@ -35,9 +35,7 @@ class _PostFormScreenState extends State<PostFormScreen> {
   @override
   void initState() {
     super.initState();
-    bodyController = MarkdownVisualController(
-      context,
-    ); // <--- Initialize with MarkdownVisualController!
+    bodyController = MarkdownVisualController(context);
     if (isEditing) {
       titleController.text = widget.existingPost!['title'] ?? '';
       bodyController.text = widget.existingPost!['body'] ?? '';
@@ -154,7 +152,7 @@ class _PostFormScreenState extends State<PostFormScreen> {
                 FormMarkdown(controller: bodyController),
                 const SizedBox(height: 16),
 
-                // Combined Image Picker & Preview Grid Component
+                // Image Picker Box
                 FormImagePicker(
                   onTap: pickImages,
                   existingImages: existingImages,
@@ -176,7 +174,6 @@ class _PostFormScreenState extends State<PostFormScreen> {
                   const SizedBox(height: 12),
                 ],
 
-                // Action Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [

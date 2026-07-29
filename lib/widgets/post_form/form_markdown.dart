@@ -17,38 +17,80 @@ class MarkdownVisualController extends TextEditingController {
     required bool withComposing,
   }) {
     final children = <InlineSpan>[];
-    final pattern = RegExp(r'(\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))');
+    final pattern =
+        RegExp(r'(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))');
 
     text.splitMapJoin(
       pattern,
       onMatch: (match) {
         final fullMatch = match[0]!;
 
-        if (fullMatch.startsWith('**') &&
-            fullMatch.endsWith('**') &&
-            fullMatch.length >= 4) {
+        // ***bold italic***
+        if (fullMatch.startsWith('***') &&
+            fullMatch.endsWith('***') &&
+            fullMatch.length >= 6) {
+          final content = fullMatch.substring(3, fullMatch.length - 3);
+          children.add(const TextSpan(
+              text: '***',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
           children.add(
             TextSpan(
-              text: fullMatch,
+              text: content,
+              style: (style ?? const TextStyle()).copyWith(
+                fontWeight: FontWeight.bold,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          );
+          children.add(const TextSpan(
+              text: '***',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+        }
+        // **bold**
+        else if (fullMatch.startsWith('**') &&
+            fullMatch.endsWith('**') &&
+            fullMatch.length >= 4) {
+          final content = fullMatch.substring(2, fullMatch.length - 2);
+          children.add(const TextSpan(
+              text: '**',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+          children.add(
+            TextSpan(
+              text: content,
               style: (style ?? const TextStyle()).copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary(context),
               ),
             ),
           );
-        } else if (fullMatch.startsWith('*') &&
+          children.add(const TextSpan(
+              text: '**',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+        }
+        // *italic*
+        else if (fullMatch.startsWith('*') &&
             fullMatch.endsWith('*') &&
             fullMatch.length >= 2) {
+          final content = fullMatch.substring(1, fullMatch.length - 1);
+          children.add(const TextSpan(
+              text: '*',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
           children.add(
             TextSpan(
-              text: fullMatch,
+              text: content,
               style: (style ?? const TextStyle()).copyWith(
                 fontStyle: FontStyle.italic,
                 color: AppColors.textPrimary(context),
               ),
             ),
           );
-        } else if (fullMatch.startsWith('[') &&
+          children.add(const TextSpan(
+              text: '*',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+        }
+        // [text](url)
+        else if (fullMatch.startsWith('[') &&
             fullMatch.contains('](') &&
             fullMatch.endsWith(')')) {
           final closeBracket = fullMatch.indexOf('](');
@@ -103,11 +145,15 @@ class _FormMarkdownState extends State<FormMarkdown> {
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
   bool _isProgrammaticChange = false;
 
+  final List<TextEditingValue> _undoStack = [];
+  final List<TextEditingValue> _redoStack = [];
+
   @override
   void initState() {
     super.initState();
     _previousText = widget.controller.text;
     _previousSelection = widget.controller.selection;
+    _undoStack.add(widget.controller.value);
     widget.controller.addListener(_onControllerChanged);
   }
 
@@ -117,18 +163,46 @@ class _FormMarkdownState extends State<FormMarkdown> {
     super.dispose();
   }
 
-  // Every programmatic edit in this file goes through here, so bookkeeping
-  // for the change-detector below always stays in sync and never mistakes
-  // our own edits for something the user typed.
-  void _setControllerState(String text, TextSelection selection) {
+  void _pushUndoState(TextEditingValue value) {
+    if (_undoStack.isEmpty || _undoStack.last.text != value.text) {
+      _undoStack.add(value);
+      if (_undoStack.length > 50) _undoStack.removeAt(0);
+      _redoStack.clear();
+      setState(() {});
+    }
+  }
+
+  void _undo() {
+    if (_undoStack.length > 1) {
+      final current = _undoStack.removeLast();
+      _redoStack.add(current);
+      final previous = _undoStack.last;
+      _setControllerState(previous.text, previous.selection, isUndoRedo: true);
+    }
+  }
+
+  void _redo() {
+    if (_redoStack.isNotEmpty) {
+      final next = _redoStack.removeLast();
+      _undoStack.add(next);
+      _setControllerState(next.text, next.selection, isUndoRedo: true);
+    }
+  }
+
+  void _setControllerState(String text, TextSelection selection,
+      {bool isUndoRedo = false}) {
     _isProgrammaticChange = true;
-    widget.controller.value = TextEditingValue(
-      text: text,
-      selection: selection,
-    );
+    final newValue = TextEditingValue(text: text, selection: selection);
+    widget.controller.value = newValue;
     _previousText = text;
     _previousSelection = selection;
     _isProgrammaticChange = false;
+
+    if (!isUndoRedo) {
+      _pushUndoState(newValue);
+    } else {
+      setState(() {});
+    }
   }
 
   void _onControllerChanged() {
@@ -137,13 +211,12 @@ class _FormMarkdownState extends State<FormMarkdown> {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
 
+    _pushUndoState(widget.controller.value);
+
     final oldCursor = _previousSelection.isValid
         ? _previousSelection.start
         : -1;
 
-    // Detect: exactly one '\n' was inserted right at the old cursor position
-    // and nothing else changed — i.e. the user pressed Enter with a
-    // collapsed selection, letting the text field insert its normal newline.
     final isSingleNewlineInsert =
         selection.isValid &&
         selection.isCollapsed &&
@@ -187,7 +260,6 @@ class _FormMarkdownState extends State<FormMarkdown> {
     if (continuation == null) return;
 
     if (prevLineIsEmptyPrefix) {
-      // Empty bullet/number + Enter = exit the list, not add another blank one.
       final newText = text.replaceRange(prevLineStart, newlineIndex + 1, '');
       _setControllerState(
         newText,
@@ -201,6 +273,46 @@ class _FormMarkdownState extends State<FormMarkdown> {
         TextSelection.collapsed(offset: insertPos + continuation.length),
       );
     }
+  }
+
+  void _formatListPrefix({required bool isNumbered}) {
+    final text = widget.controller.text;
+    final selection = widget.controller.selection;
+
+    if (!selection.isValid) return;
+
+    final start = selection.start;
+    final end = selection.end;
+
+    final lineStart = text.lastIndexOf('\n', start > 0 ? start - 1 : 0);
+    final actualStart = lineStart == -1 ? 0 : lineStart + 1;
+
+    final selectedBlock = text.substring(actualStart, end);
+    final lines = selectedBlock.split('\n');
+
+    final formattedLines = <String>[];
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final prefix = isNumbered ? '${i + 1}. ' : '- ';
+      if (line.startsWith('- ')) {
+        formattedLines.add(line.substring(2));
+      } else if (RegExp(r'^\d+\.\s').hasMatch(line)) {
+        formattedLines.add(line.replaceFirst(RegExp(r'^\d+\.\s'), ''));
+      } else {
+        formattedLines.add('$prefix$line');
+      }
+    }
+
+    final newBlock = formattedLines.join('\n');
+    final newText = text.replaceRange(actualStart, end, newBlock);
+
+    _setControllerState(
+      newText,
+      TextSelection(
+        baseOffset: actualStart,
+        extentOffset: actualStart + newBlock.length,
+      ),
+    );
   }
 
   void _toggleFormat(String tag) {
@@ -394,25 +506,18 @@ class _FormMarkdownState extends State<FormMarkdown> {
     }
   }
 
-  void _insertListPrefix(String prefix) {
-    final text = widget.controller.text;
-    final selection = widget.controller.selection;
-    final cursor = selection.isValid ? selection.start : text.length;
-
-    final needsNewlineBefore = cursor > 0 && text[cursor - 1] != '\n';
-    final insertion = needsNewlineBefore ? '\n$prefix' : prefix;
-
-    final newText = text.replaceRange(cursor, cursor, insertion);
-    _setControllerState(
-      newText,
-      TextSelection.collapsed(offset: cursor + insertion.length),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): _undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
+            _redo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
+            _redo,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
+        const SingleActivator(LogicalKeyboardKey.keyY, meta: true): _redo,
         const SingleActivator(LogicalKeyboardKey.keyB, control: true): () =>
             _toggleFormat('**'),
         const SingleActivator(LogicalKeyboardKey.keyB, meta: true): () =>
@@ -443,6 +548,17 @@ class _FormMarkdownState extends State<FormMarkdown> {
               child: Row(
                 children: [
                   IconButton(
+                    tooltip: 'Undo (Ctrl+Z)',
+                    icon: const Icon(LucideIcons.undo, size: 16),
+                    onPressed: _undoStack.length > 1 ? _undo : null,
+                  ),
+                  IconButton(
+                    tooltip: 'Redo (Ctrl+Y)',
+                    icon: const Icon(LucideIcons.redo, size: 16),
+                    onPressed: _redoStack.isNotEmpty ? _redo : null,
+                  ),
+                  const VerticalDivider(width: 12, indent: 6, endIndent: 6),
+                  IconButton(
                     tooltip: 'Bold (Ctrl+B)',
                     icon: const Icon(LucideIcons.bold, size: 16),
                     onPressed: () => _toggleFormat('**'),
@@ -460,12 +576,12 @@ class _FormMarkdownState extends State<FormMarkdown> {
                   IconButton(
                     tooltip: 'Bullet List',
                     icon: const Icon(LucideIcons.list, size: 16),
-                    onPressed: () => _insertListPrefix('- '),
+                    onPressed: () => _formatListPrefix(isNumbered: false),
                   ),
                   IconButton(
                     tooltip: 'Numbered List',
                     icon: const Icon(LucideIcons.listOrdered, size: 16),
-                    onPressed: () => _insertListPrefix('1. '),
+                    onPressed: () => _formatListPrefix(isNumbered: true),
                   ),
                 ],
               ),

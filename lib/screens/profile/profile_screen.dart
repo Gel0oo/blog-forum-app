@@ -50,12 +50,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> pickAvatar() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      final bytes = await file.readAsBytes();
-      if (!mounted) return;
-      await context.read<ProfileProvider>().updateAvatar(bytes);
-      setState(() => successMessage = 'Avatar updated successfully.');
+    if (file == null) return;
+
+    if (file.name.toLowerCase().endsWith('.gif')) {
+      setState(() {
+        error =
+            'GIFs are not allowed for profile photos. Please pick a JPG or PNG.';
+        successMessage = null;
+      });
+      return;
     }
+
+    final bytes = await file.readAsBytes();
+
+    // Inspect binary magic header for GIF87a / GIF89a signatures
+    if (bytes.length >= 4 &&
+        bytes[0] == 0x47 && // 'G'
+        bytes[1] == 0x49 && // 'I'
+        bytes[2] == 0x46 && // 'F'
+        bytes[3] == 0x38) {
+      // '8'
+      setState(() {
+        error =
+            'GIFs are not allowed for profile photos. Please pick a JPG or PNG.';
+        successMessage = null;
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    await context.read<ProfileProvider>().updateAvatar(bytes);
+    setState(() {
+      error = null;
+      successMessage = 'Avatar updated successfully.';
+    });
   }
 
   Future<void> saveName() async {
