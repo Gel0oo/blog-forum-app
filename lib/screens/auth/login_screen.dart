@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/profile_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  bool showPassword = false;
   String? error;
   bool isLoading = false;
 
@@ -47,10 +49,13 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await context.read<AuthProvider>().signIn(email, password);
       if (mounted) {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        } else {
-          context.go('/');
+        await context.read<ProfileProvider>().fetchProfile(); // Instantly loads avatar & name
+        if (mounted) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/');
+          }
         }
       }
     } catch (e) {
@@ -128,25 +133,101 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: AppTextStyles.body(context, size: 12),
                 ),
                 const SizedBox(height: 24),
-                shadcn.TextField(
+                TextField(
                   controller: emailController,
-                  borderRadius: BorderRadius.circular(999),
-                  placeholder: Text(
-                    'Email *',
-                    style: AppTextStyles.body(context, size: 13),
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary(context),
                   ),
-                  features: const [shadcn.InputFeature.clear()],
+                  decoration: InputDecoration(
+                    hintText: 'Email *',
+                    hintStyle: AppTextStyles.body(context, size: 13),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.cardBackground(context),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    suffixIcon: const SizedBox(width: 40, height: 40),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
-                shadcn.TextField(
+                TextField(
                   controller: passwordController,
-                  obscureText: true,
-                  borderRadius: BorderRadius.circular(999),
-                  placeholder: Text(
-                    'Password *',
-                    style: AppTextStyles.body(context, size: 13),
+                  obscureText: !showPassword,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => handleLogin(),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary(context),
                   ),
-                  features: const [shadcn.InputFeature.clear()],
+                  decoration: InputDecoration(
+                    hintText: 'Password *',
+                    hintStyle: AppTextStyles.body(context, size: 13),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.cardBackground(context),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    suffixIcon: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          showPassword
+                              ? LucideIcons.eyeOff
+                              : LucideIcons.eye,
+                          size: 16,
+                          color: AppColors.textSecondary(context),
+                        ),
+                        onPressed: () =>
+                            setState(() => showPassword = !showPassword),
+                      ),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (error != null) ...[

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import 'package:flutter_svg/flutter_svg.dart';
+import '../supabase_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/posts_provider.dart';
@@ -129,72 +130,127 @@ class _SearchField extends StatefulWidget {
 }
 
 class _SearchFieldState extends State<_SearchField> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
   List<String> _currentSuggestions = [];
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
+  Future<void> _fetchSuggestions(String query) async {
+    try {
+      final response = await supabase
+          .from('posts')
+          .select('title')
+          .ilike('title', '%$query%')
+          .limit(5);
 
-  Map<String, Map<String, dynamic>> _titleToPost(BuildContext context) {
-    final posts = context.read<PostsProvider>().posts;
-    return {for (final p in posts) p['title'] as String: p};
-  }
+      final matches = (response as List)
+          .map((row) => row['title'] as String)
+          .toSet()
+          .toList();
 
-  void _updateSuggestions(String value) {
-    if (value.trim().isEmpty) {
-      context.read<PostsProvider>().searchPosts('');
-      setState(() => _currentSuggestions = []);
-      return;
-    }
-    final titles = _titleToPost(context).keys.toList();
-    final matches = titles
-        .where((t) => t.toLowerCase().contains(value.toLowerCase()))
-        .toList();
-    setState(() => _currentSuggestions = matches);
-  }
-
-  void _handleSubmit(String value) {
-    context.read<PostsProvider>().searchPosts(value);
+      if (mounted) {
+        setState(() => _currentSuggestions = matches);
+      }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 38,
-      child: shadcn.AutoComplete(
-        suggestions: _currentSuggestions,
-        child: shadcn.TextField(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          controller: _controller,
-          focusNode: _focusNode,
-          onChanged: _updateSuggestions,
-          onSubmitted: _handleSubmit,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.border(context)),
-          placeholder: Text(
-            'Search posts...',
-            style: AppTextStyles.body(context, size: 13),
-          ),
-          features: [
-            shadcn.InputFeature.leading(
-              Row(
-                children: [
-                  Icon(
-                    LucideIcons.search,
-                    size: 16,
-                    color: AppColors.textSecondary(context),
-                  ),
-                ],
+      height: 36,
+      child: Autocomplete<String>(
+        optionsBuilder: (textEditingValue) {
+          final query = textEditingValue.text.trim();
+          if (query.isEmpty) {
+            context.read<PostsProvider>().searchPosts('');
+            return const Iterable<String>.empty();
+          }
+          _fetchSuggestions(query);
+          return _currentSuggestions;
+        },
+        onSelected: (selection) {
+          context.read<PostsProvider>().searchPosts(selection);
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 500,
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border(context)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (context, index) {
+                    final option = options.elementAt(index);
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      hoverColor: AppColors.hover(context),
+                      onTap: () => onSelected(option),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          option,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-            const shadcn.InputFeature.clear(),
-          ],
-        ),
+          );
+        },
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          return shadcn.TextField(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            controller: controller,
+            focusNode: focusNode,
+            onSubmitted: (value) {
+              context.read<PostsProvider>().searchPosts(value);
+              onFieldSubmitted();
+            },
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.border(context)),
+            placeholder: Text(
+              'Search...',
+              style: AppTextStyles.body(context, size: 12),
+            ),
+            features: [
+              shadcn.InputFeature.leading(
+                Row(
+                  children: [
+                    Icon(
+                      LucideIcons.search,
+                      size: 14,
+                      color: AppColors.textSecondary(context),
+                    ),
+                  ],
+                ),
+              ),
+              const shadcn.InputFeature.clear(),
+            ],
+          );
+        },
       ),
     );
   }

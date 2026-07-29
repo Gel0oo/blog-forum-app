@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/profile_provider.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,24 +19,29 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
+  bool showPassword = false;
   String? error;
   bool isLoading = false;
 
   @override
   void dispose() {
+    nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
   Future<void> handleRegister() async {
+    final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => error = 'Please enter both email and password.');
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      setState(() => error = 'Please fill in all fields.');
       return;
     }
 
@@ -50,12 +56,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      await context.read<AuthProvider>().signUp(email, password);
+      await context.read<AuthProvider>().signUp(
+            email,
+            password,
+            name: name,
+          );
       if (mounted) {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        } else {
-          context.go('/');
+        await context.read<ProfileProvider>().fetchProfile(); // Instantly loads avatar & name
+        if (mounted) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/');
+          }
         }
       }
     } catch (e) {
@@ -127,25 +140,141 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: AppTextStyles.body(context, size: 12),
                 ),
                 const SizedBox(height: 24),
-                shadcn.TextField(
-                  controller: emailController,
-                  borderRadius: BorderRadius.circular(999),
-                  placeholder: Text(
-                    'Email *',
-                    style: AppTextStyles.body(context, size: 13),
+                TextField(
+                  controller: nameController,
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary(context),
                   ),
-                  features: const [shadcn.InputFeature.clear()],
+                  decoration: InputDecoration(
+                    hintText: 'Display Name *',
+                    hintStyle: AppTextStyles.body(context, size: 13),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.cardBackground(context),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    suffixIcon: const SizedBox(width: 40, height: 40),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
-                shadcn.TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  borderRadius: BorderRadius.circular(999),
-                  placeholder: Text(
-                    'Password *',
-                    style: AppTextStyles.body(context, size: 13),
+                TextField(
+                  controller: emailController,
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary(context),
                   ),
-                  features: const [shadcn.InputFeature.clear()],
+                  decoration: InputDecoration(
+                    hintText: 'Email *',
+                    hintStyle: AppTextStyles.body(context, size: 13),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.cardBackground(context),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    suffixIcon: const SizedBox(width: 40, height: 40),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: !showPassword,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => handleRegister(),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary(context),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Password *',
+                    hintStyle: AppTextStyles.body(context, size: 13),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.cardBackground(context),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    suffixIcon: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          showPassword
+                              ? LucideIcons.eyeOff
+                              : LucideIcons.eye,
+                          size: 16,
+                          color: AppColors.textSecondary(context),
+                        ),
+                        onPressed: () =>
+                            setState(() => showPassword = !showPassword),
+                      ),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (error != null) ...[

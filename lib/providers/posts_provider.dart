@@ -1,3 +1,5 @@
+// lib/providers/posts_provider.dart
+
 import 'package:flutter/foundation.dart';
 import '../supabase_config.dart';
 
@@ -143,7 +145,7 @@ class PostsProvider extends ChangeNotifier {
 
       await supabase.storage
           .from('post_images')
-          .uploadBinary(path, newImageBytes[i]);
+          .uploadBinary(path, newImageBytes[i]); // <--- Changed from imageBytes to newImageBytes
       final url = supabase.storage.from('post_images').getPublicUrl(path);
 
       await supabase.from('post_images').insert({
@@ -239,6 +241,7 @@ class PostsProvider extends ChangeNotifier {
       }
     }
 
+    hasMore = false; // Prevents infinite skeleton loading on search results
     isLoading = false;
     notifyListeners();
   }

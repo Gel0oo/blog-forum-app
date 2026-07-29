@@ -20,10 +20,11 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final nameController = TextEditingController();
+  final nameFocus = FocusNode();
   bool isEditingName = false;
   bool isSaving = false;
   String? error;
-  String? successMessage; // <--- Inline success message state
+  String? successMessage;
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     nameController.dispose();
+    nameFocus.dispose();
     super.dispose();
   }
 
@@ -97,9 +99,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           isSaving = false;
           isEditingName = false;
-          successMessage =
-              'Profile updated successfully.'; // Set green success text
+          successMessage = 'Profile updated successfully.';
         });
+        nameFocus.unfocus();
       }
     } catch (e) {
       setState(() {
@@ -125,7 +127,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
                   children: [
                     IconButton(
@@ -149,7 +150,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Main Profile Card
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -160,7 +160,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Avatar Photo Section
                       Center(
                         child: Column(
                           children: [
@@ -242,7 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Divider(color: AppColors.border(context)),
                       const SizedBox(height: 20),
 
-                      // Display Name Section
                       Text(
                         'Display Name',
                         style: TextStyle(
@@ -253,9 +251,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 8),
 
-                      // Name Field
                       shadcn.TextField(
                         controller: nameController,
+                        focusNode: nameFocus,
                         readOnly: !isEditingName,
                         borderRadius: BorderRadius.circular(AppRadius.value),
                         border: Border.all(color: AppColors.border(context)),
@@ -291,6 +289,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     nameController.text =
                                         profile?['name'] ?? '';
                                     error = null;
+                                    nameFocus.unfocus();
+                                  } else {
+                                    nameFocus.requestFocus();
                                   }
                                   successMessage = null;
                                   isEditingName = !isEditingName;
@@ -301,7 +302,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
 
-                      // Inline Green Success Message directly below TextField
                       if (successMessage != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -314,7 +314,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
 
-                      // Inline Red Error Message directly below TextField
                       if (error != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -327,7 +326,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
 
-                      // Save Changes Button (Visible ONLY when editing)
                       if (isEditingName) ...[
                         const SizedBox(height: 20),
                         SizedBox(

@@ -34,6 +34,14 @@
 - [x] Light/Dark mode switch is going back to the very top of the page.
 - [x] Hyperlink not work, need actual popup to input the link
 - [x] importantly, the login/register popup. Not popping up on post_list
+- [x] Searching non existing posts shows a skeleton loading infinitely
+- [x] Login should popin when the user tries to press the like button when not logged in
+- [x] Login/register eye buttons. Remove the X buttons
+- [x] Make tabbing on inputs be smooth, as of now it keeps tabbing on the X buttons (but these X buttons will be replaced)
+- [x] Clicking on an autocompleted search in the searchbar should instantly search for it. Because as of now it justs prints the word on the searchbar i had to press enter
+- [x] Need to put a name input inside register.
+- [x] The profile edit, the pencil icon is pressable, but i cant actually input a new name.
+- [x] Profile photo not showing when logging in. 
 
 ## Key Decisions
 - Images stored as separate rows (post_images, comment_images) not array columns, makes us so that they can delete individual images without rewriting a whole array.

@@ -171,21 +171,38 @@ class _PostListScreenState extends State<PostListScreen>
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
-          tabs: const [Tab(text: 'Most Recent'), Tab(text: 'Trending')],
+          tabs: const [
+            Tab(text: 'Most Recent'),
+            Tab(text: 'Trending'),
+          ],
         ),
       );
     }
 
+    // 1. Initial Loading State
     if (postsProvider.isLoading && postsProvider.posts.isEmpty) {
       return const Column(
-        children: [
-          ListCardSkeleton(),
-          ListCardSkeleton(),
-          ListCardSkeleton(),
-        ],
+        children: [ListCardSkeleton(), ListCardSkeleton(), ListCardSkeleton()],
       );
     }
 
+    // 2. Empty State (No Search Results)
+    if (!postsProvider.isLoading && displayedPosts.isEmpty) {
+      if (index == 1) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          child: Center(
+            child: Text(
+              'No posts found.',
+              style: AppTextStyles.body(context, size: 15),
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    // 3. Pagination Footer Loader
     if (index == displayedPosts.length + 1) {
       return postsProvider.hasMore
           ? const Padding(

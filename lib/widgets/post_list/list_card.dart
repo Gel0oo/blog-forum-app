@@ -14,6 +14,7 @@ import 'list_image.dart';
 import '../pill_button.dart';
 import '../menu_dropdown.dart';
 import '../image_viewer.dart';
+import '../../screens/auth/login_screen.dart';
 
 class ListCard extends StatelessWidget {
   final Map<String, dynamic> post;
@@ -148,11 +149,17 @@ class ListCard extends StatelessWidget {
                       icon: LucideIcons.heart,
                       filled: isLiked,
                       label: '$likeCount',
-                      onTap: isLoggedIn
-                          ? () => context.read<PostsProvider>().toggleLike(
-                              post['id'],
-                            )
-                          : null,
+                      onTap: () {
+                        if (!isLoggedIn) {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.transparent,
+                            builder: (_) => const LoginScreen(),
+                          );
+                        } else {
+                          context.read<PostsProvider>().toggleLike(post['id']);
+                        }
+                      },
                     ),
                     const SizedBox(width: 8),
                     PillButton(

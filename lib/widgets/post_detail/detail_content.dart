@@ -15,6 +15,7 @@ import '../pill_button.dart';
 import '../menu_dropdown.dart';
 import '../post_list/list_image.dart';
 import '../image_viewer.dart';
+import '../../screens/auth/login_screen.dart';
 
 class DetailContent extends StatelessWidget {
   final Map<String, dynamic> post;
@@ -49,8 +50,9 @@ class DetailContent extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundImage:
-                    authorAvatar != null ? NetworkImage(authorAvatar) : null,
+                backgroundImage: authorAvatar != null
+                    ? NetworkImage(authorAvatar)
+                    : null,
                 child: authorAvatar == null
                     ? const Icon(LucideIcons.user, size: 18)
                     : null,
@@ -94,10 +96,7 @@ class DetailContent extends StatelessWidget {
               }
             },
             styleSheet: MarkdownStyleSheet(
-              p: TextStyle(
-                fontSize: 15,
-                color: AppColors.textPrimary(context),
-              ),
+              p: TextStyle(fontSize: 15, color: AppColors.textPrimary(context)),
               listBullet: TextStyle(
                 fontSize: 15,
                 color: AppColors.textPrimary(context),
@@ -148,11 +147,17 @@ class DetailContent extends StatelessWidget {
                 icon: LucideIcons.heart,
                 filled: isLiked,
                 label: '$likeCount',
-                onTap: isLoggedIn
-                    ? () => context
-                          .read<PostsProvider>()
-                          .toggleLike(post['id'])
-                    : null,
+                onTap: () {
+                  if (!isLoggedIn) {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.transparent,
+                      builder: (_) => const LoginScreen(),
+                    );
+                  } else {
+                    context.read<PostsProvider>().toggleLike(post['id']);
+                  }
+                },
               ),
               const SizedBox(width: 8),
               PillButton(
