@@ -1,6 +1,5 @@
 // lib/screens/posts/post_list_screen.dart
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/posts_provider.dart';
@@ -10,7 +9,6 @@ import '../../theme/app_theme.dart';
 import '../../widgets/top_app_bar.dart';
 import '../../widgets/post_list/list_card.dart';
 import '../../widgets/post_list/list_cardskeleton.dart';
-import '../../widgets/post_list/list_sidecontent.dart';
 
 class PostListScreen extends StatefulWidget {
   const PostListScreen({super.key});
@@ -24,13 +22,10 @@ class _PostListScreenState extends State<PostListScreen>
   final scrollController = ScrollController();
   late TabController tabController;
 
-  static const double _sideMargin = 280;
-  static const double _columnGap = AppSpacing.lg;
-
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 3, vsync: this);
     tabController.addListener(() => setState(() {}));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,11 +57,22 @@ class _PostListScreenState extends State<PostListScreen>
     final postsProvider = context.watch<PostsProvider>();
 
     final displayedPosts = List<Map<String, dynamic>>.from(postsProvider.posts);
+
     if (tabController.index == 1) {
       displayedPosts.sort((a, b) {
-        final aLikes = (a['post_likes'] as List).length;
-        final bLikes = (b['post_likes'] as List).length;
+        final aLikes = ((a['post_likes'] as List?) ?? []).length;
+        final bLikes = ((b['post_likes'] as List?) ?? []).length;
         return bLikes.compareTo(aLikes);
+      });
+    } else if (tabController.index == 2) {
+      displayedPosts.sort((a, b) {
+        final aCount = (a['comments'] as List?)?.isNotEmpty == true
+            ? a['comments'][0]['count']
+            : 0;
+        final bCount = (b['comments'] as List?)?.isNotEmpty == true
+            ? b['comments'][0]['count']
+            : 0;
+        return bCount.compareTo(aCount);
       });
     }
 
@@ -75,144 +81,185 @@ class _PostListScreenState extends State<PostListScreen>
       appBar: const TopAppBar(),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final contentWidth = constraints.maxWidth - (_sideMargin * 2);
-          final leftWidth = (contentWidth - _columnGap) * 5 / 7;
-          final sidebarWidth = contentWidth - _columnGap - leftWidth;
+          final isMobile = constraints.maxWidth < 750;
+          final isTablet = constraints.maxWidth >= 750 && constraints.maxWidth < 1100;
 
-          return Stack(
-            children: [
-              // Full-width scroll surface — wheel/touch works anywhere on the page
-              Positioned.fill(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.only(
-                    top: AppSpacing.md,
-                    bottom: AppSpacing.lg,
+          final List<Widget> feedItems = [];
+
+          // 1. Navigation Header Tabs
+          feedItems.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              child: TabBar(
+                controller: tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: EdgeInsets.zero,
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.label,
+                indicatorColor: AppColors.primary,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.textPrimary(context),
+                splashBorderRadius: BorderRadius.circular(AppRadius.value),
+                overlayColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.hovered)
+                      ? AppColors.textPrimary(context).withValues(alpha: 0.08)
+                      : null,
+                ),
+                labelStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                tabs: const [
+                  Tab(text: 'Most Recent'),
+                  Tab(text: 'Trending'),
+                  Tab(text: 'Top Discussions'),
+                ],
+              ),
+            ),
+          );
+
+          // 2. Initial Loading State (Featured Hero Skeleton + 3-Column Grid Skeletons)
+          if (postsProvider.isLoading && postsProvider.posts.isEmpty) {
+            feedItems.add(
+              const Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.xl),
+                child: ListCardSkeleton(isHero: true),
+              ),
+            );
+            if (isMobile) {
+              feedItems.add(
+                const Column(
+                  children: [
+                    ListCardSkeleton(),
+                    SizedBox(height: AppSpacing.lg),
+                    ListCardSkeleton(),
+                  ],
+                ),
+              );
+            } else {
+              feedItems.add(
+                const Row(
+                  children: [
+                    Expanded(child: ListCardSkeleton()),
+                    SizedBox(width: AppSpacing.lg),
+                    Expanded(child: ListCardSkeleton()),
+                    SizedBox(width: AppSpacing.lg),
+                    Expanded(child: ListCardSkeleton()),
+                  ],
+                ),
+              );
+            }
+          } else if (!postsProvider.isLoading && displayedPosts.isEmpty) {
+            feedItems.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                child: Center(
+                  child: Text(
+                    'No posts found.',
+                    style: AppTextStyles.body(context, size: 15),
                   ),
-                  itemCount: displayedPosts.length + 2,
-                  itemBuilder: (context, index) {
-                    // Confine each item's visible content to the left column,
-                    // leaving space on the right for the sidebar to sit on top.
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        left: _sideMargin,
-                        right: _sideMargin + _columnGap + sidebarWidth,
-                      ),
-                      child: _buildItem(
-                        context,
-                        index,
-                        displayedPosts,
-                        postsProvider,
-                      ),
-                    );
-                  },
                 ),
               ),
+            );
+          } else {
+            // 3. Featured Split Hero Banner (First Post)
+            if (displayedPosts.isNotEmpty) {
+              feedItems.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                  child: ListCard(
+                    post: displayedPosts.first,
+                    scrollController: scrollController,
+                    isHero: true,
+                  ),
+                ),
+              );
+            }
 
-              // Sidebar layered on top, never scrolls on its own — but its
-              // opaque children (card background, dropdown rows) block
-              // pointer events from reaching the ListView underneath, so we
-              // manually forward wheel events into the same scrollController
-              // via the real scroll-physics method, keeping it feeling
-              // identical to scrolling directly over the feed.
-              Positioned(
-                top: 0,
-                right: _sideMargin,
-                width: sidebarWidth,
-                child: Listener(
-                  onPointerSignal: (event) {
-                    if (event is PointerScrollEvent &&
-                        scrollController.hasClients) {
-                      scrollController.position.pointerScroll(
-                        event.scrollDelta.dy,
-                      );
-                    }
-                  },
-                  child: const ListSideContent(),
+            // 4. Remaining Posts in Standard 3-Column Grid
+            final gridPosts = displayedPosts.length > 1
+                ? displayedPosts.sublist(1)
+                : <Map<String, dynamic>>[];
+
+            final int columns = isMobile ? 1 : (isTablet ? 2 : 3);
+
+            for (int i = 0; i < gridPosts.length; i += columns) {
+              final rowPosts = gridPosts.sublist(
+                i,
+                (i + columns < gridPosts.length) ? i + columns : gridPosts.length,
+              );
+
+              feedItems.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (int col = 0; col < columns; col++) ...[
+                          if (col > 0) const SizedBox(width: AppSpacing.lg),
+                          Expanded(
+                            child: col < rowPosts.length
+                                ? ListCard(
+                                    post: rowPosts[col],
+                                    scrollController: scrollController,
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              );
+            }
+
+            // 5. Pagination Loading Row
+            if (postsProvider.hasMore) {
+              feedItems.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: isMobile
+                      ? const ListCardSkeleton()
+                      : const Row(
+                          children: [
+                            Expanded(child: ListCardSkeleton()),
+                            SizedBox(width: AppSpacing.lg),
+                            Expanded(child: ListCardSkeleton()),
+                            SizedBox(width: AppSpacing.lg),
+                            Expanded(child: ListCardSkeleton()),
+                          ],
+                        ),
+                ),
+              );
+            }
+          }
+
+          const double maxGridWidth = 1200;
+
+          return ListView.builder(
+            controller: scrollController,
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 16 : 24,
+              vertical: AppSpacing.md,
+            ),
+            itemCount: feedItems.length,
+            itemBuilder: (context, index) {
+              return Center(
+                child: SizedBox(
+                  width: maxGridWidth,
+                  child: feedItems[index],
+                ),
+              );
+            },
           );
         },
       ),
     );
-  }
-
-  Widget _buildItem(
-    BuildContext context,
-    int index,
-    List<Map<String, dynamic>> displayedPosts,
-    PostsProvider postsProvider,
-  ) {
-    if (index == 0) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: TabBar(
-          controller: tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          padding: EdgeInsets.zero,
-          dividerColor: Colors.transparent,
-          indicatorSize: TabBarIndicatorSize.label,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textPrimary(context),
-          splashBorderRadius: BorderRadius.circular(AppRadius.value),
-          overlayColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.hovered)
-                ? AppColors.textPrimary(context).withValues(alpha: 0.08)
-                : null,
-          ),
-          labelStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-          tabs: const [
-            Tab(text: 'Most Recent'),
-            Tab(text: 'Trending'),
-          ],
-        ),
-      );
-    }
-
-    // 1. Initial Loading State
-    if (postsProvider.isLoading && postsProvider.posts.isEmpty) {
-      return const Column(
-        children: [ListCardSkeleton(), ListCardSkeleton(), ListCardSkeleton()],
-      );
-    }
-
-    // 2. Empty State (No Search Results)
-    if (!postsProvider.isLoading && displayedPosts.isEmpty) {
-      if (index == 1) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 48),
-          child: Center(
-            child: Text(
-              'No posts found.',
-              style: AppTextStyles.body(context, size: 15),
-            ),
-          ),
-        );
-      }
-      return const SizedBox.shrink();
-    }
-
-    // 3. Pagination Footer Loader
-    if (index == displayedPosts.length + 1) {
-      return postsProvider.hasMore
-          ? const Padding(
-              padding: EdgeInsets.only(bottom: AppSpacing.md),
-              child: ListCardSkeleton(),
-            )
-          : const SizedBox.shrink();
-    }
-
-    final post = displayedPosts[index - 1];
-    return ListCard(post: post, scrollController: scrollController);
   }
 }

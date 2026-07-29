@@ -16,6 +16,7 @@ import '../theme/app_theme.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
+import '../screens/posts/post_form_screen.dart';
 
 class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TopAppBar({super.key});
@@ -72,14 +73,38 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
         bottom: BorderSide(color: AppColors.border(context), width: 1),
       ),
       actions: [
-        if (isLoggedIn)
+        if (isLoggedIn) ...[
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: shadcn.PrimaryButton(
+              density: shadcn.ButtonDensity.normal,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const PostFormScreen()),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.plus, size: 16, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text(
+                    'Create Post',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: _ProfileMenu(
               avatarUrl: profileProvider.profile?['avatar_url'],
             ),
-          )
-        else ...[
+          ),
+        ] else ...[
           // Login Pill
           Padding(
             padding: const EdgeInsets.only(right: 8),

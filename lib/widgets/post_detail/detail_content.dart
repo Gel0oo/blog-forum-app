@@ -77,7 +77,7 @@ class DetailContent extends StatelessWidget {
                   ],
                 ),
               ),
-              MenuDropdown(post: post, postBody: post['body'] ?? ''),
+              MenuDropdown(post: post),
             ],
           ),
           const SizedBox(height: 16),

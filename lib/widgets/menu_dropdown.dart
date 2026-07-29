@@ -1,7 +1,6 @@
 // lib/widgets/post_list/menu_dropdown.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
@@ -12,15 +11,9 @@ import '../../screens/posts/post_form_screen.dart';
 
 class MenuDropdown extends StatefulWidget {
   final Map<String, dynamic>? post;
-  final String postBody;
   final ScrollController? scrollController;
 
-  const MenuDropdown({
-    super.key,
-    this.post,
-    required this.postBody,
-    this.scrollController,
-  });
+  const MenuDropdown({super.key, this.post, this.scrollController});
 
   @override
   State<MenuDropdown> createState() => _MenuDropdownState();
@@ -88,6 +81,11 @@ class _MenuDropdownState extends State<MenuDropdown> {
     final isOwner =
         widget.post != null && widget.post!['user_id'] == currentUserId;
 
+    // Hide 3-dots icon completely if user is not the author
+    if (!isOwner) {
+      return const SizedBox.shrink();
+    }
+
     return Builder(
       builder: (btnContext) {
         return IconButton(
@@ -122,65 +120,31 @@ class _MenuDropdownState extends State<MenuDropdown> {
                     child: shadcn.DropdownMenu(
                       children: [
                         shadcn.MenuButton(
-                          leading: const Icon(LucideIcons.copy, size: 18),
+                          leading: const Icon(LucideIcons.pencil, size: 18),
                           onPressed: (context) {
-                            Clipboard.setData(
-                              ClipboardData(text: widget.postBody),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Copied to clipboard'),
-                              ),
-                            );
                             _overlayCompleter?.close();
                             _overlayCompleter = null;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PostFormScreen(existingPost: widget.post),
+                              ),
+                            );
                           },
-                          child: const Text('Copy text'),
+                          child: const Text('Edit post'),
                         ),
-                        if (isOwner) ...[
-                          shadcn.MenuButton(
-                            leading: const Icon(LucideIcons.pencil, size: 18),
-                            onPressed: (context) {
-                              _overlayCompleter?.close();
-                              _overlayCompleter = null;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      PostFormScreen(existingPost: widget.post),
-                                ),
-                              );
-                            },
-                            child: const Text('Edit post'),
+                        shadcn.MenuButton(
+                          leading: const Icon(
+                            LucideIcons.trash2,
+                            size: 18,
+                            color: Colors.redAccent,
                           ),
-                          shadcn.MenuButton(
-                            leading: const Icon(
-                              LucideIcons.trash2,
-                              size: 18,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: (_) => _confirmDelete(),
-                            child: const Text(
-                              'Delete post',
-                              style: TextStyle(color: Colors.redAccent),
-                            ),
+                          onPressed: (_) => _confirmDelete(),
+                          child: const Text(
+                            'Delete post',
+                            style: TextStyle(color: Colors.redAccent),
                           ),
-                        ] else ...[
-                          shadcn.MenuButton(
-                            leading: const Icon(LucideIcons.flag, size: 18),
-                            onPressed: (context) {
-                              _overlayCompleter?.close();
-                              _overlayCompleter = null;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'This does not work as of now :)',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Text('Report'),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
                   ),
