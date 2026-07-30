@@ -5,9 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 
 class AppColors {
-  static const primary = Color(0xFF5B5CEB);
+  // Hashnode Signature Indigo Accent
+  static const primary = Color(0xFF6366F1);
 
-  // Dynamic getters hooked directly into Shadcn ColorScheme
   static Color background(BuildContext context) =>
       shadcn.Theme.of(context).colorScheme.background;
 
@@ -24,7 +24,7 @@ class AppColors {
       shadcn.Theme.of(context).colorScheme.border;
 
   static Color hover(BuildContext context) =>
-    AppColors.textPrimary(context).withValues(alpha: 0.05);
+      AppColors.textPrimary(context).withValues(alpha: 0.05);
 }
 
 class AppSpacing {
@@ -37,7 +37,7 @@ class AppSpacing {
 }
 
 class AppRadius {
-  static const value = 7.0;
+  static const value = 8.0;
 }
 
 class AppTextStyles {
@@ -46,15 +46,17 @@ class AppTextStyles {
       fontSize: size,
       fontWeight: FontWeight.w700,
       color: color ?? AppColors.textPrimary(context),
-      letterSpacing: -0.2,
+      letterSpacing: -0.4,
+      height: 1.25,
     );
   }
 
   static TextStyle body(BuildContext context, {double size = 14, Color? color}) {
-    return GoogleFonts.nunito(
+    return GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w400,
       color: color ?? AppColors.textSecondary(context),
+      height: 1.45,
     );
   }
 }

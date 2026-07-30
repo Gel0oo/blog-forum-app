@@ -104,10 +104,10 @@ class _PostDetailBodyState extends State<_PostDetailBody> {
       backgroundColor: AppColors.background(context),
       appBar: const TopAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Center(
           child: SizedBox(
-            width: 720,
+            width: 1100,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

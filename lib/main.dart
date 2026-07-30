@@ -48,13 +48,25 @@ class _MyAppState extends State<MyApp> {
             theme: ThemeData(
               colorScheme: ColorSchemes.slate(
                 ThemeMode.light,
-              ).copyWith(primary: () => AppColors.primary),
+              ).copyWith(
+                primary: () => AppColors.primary,
+                ring: () => AppColors.primary,
+                background: () => const Color(0xFFF9FAFB), // #f9fafb
+                card: () => const Color(0xFFFFFFFF),       // #ffffff
+                border: () => const Color(0xFFD1D4D9),     // #d1d4d9
+              ),
               scaling: 1.15,
             ),
             darkTheme: ThemeData(
               colorScheme: ColorSchemes.slate(
                 ThemeMode.dark,
-              ).copyWith(primary: () => AppColors.primary, ring: () => AppColors.primary),
+              ).copyWith(
+                primary: () => AppColors.primary,
+                ring: () => AppColors.primary,
+                background: () => const Color(0xFF16191C), // #16191c
+                card: () => const Color(0xFF1C2024),       // #1c2024
+                border: () => const Color(0xFF2F3338),     // #2f3338
+              ),
               scaling: 1.15,
             ),
             routerConfig: _router!,

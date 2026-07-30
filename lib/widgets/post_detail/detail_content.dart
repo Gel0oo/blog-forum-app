@@ -34,105 +34,25 @@ class DetailContent extends StatelessWidget {
     final isLiked = likes.any(
       (l) => l['user_id'] == supabase.auth.currentUser?.id,
     );
-    final authorName = post['author']?['name'] ?? 'Unknown';
+    final authorName = post['author']?['name'] ?? 'Unknown Author';
     final authorAvatar = post['author']?['avatar_url'];
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.cardBackground(context),
-        borderRadius: BorderRadius.circular(AppRadius.value),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border(context)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: authorAvatar != null
-                    ? NetworkImage(authorAvatar)
-                    : null,
-                child: authorAvatar == null
-                    ? const Icon(LucideIcons.user, size: 18)
-                    : null,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      authorName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppColors.textPrimary(context),
-                      ),
-                    ),
-                    Text(
-                      '${formatDate(post['created_at'])} • ${timeAgo(post['created_at'])}',
-                      style: AppTextStyles.body(context, size: 12),
-                    ),
-                  ],
-                ),
-              ),
-              MenuDropdown(post: post),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          Text(
-            post['title'] ?? '',
-            style: AppTextStyles.heading(context, size: 22),
-          ),
-          const SizedBox(height: 12),
-
-          MarkdownBody(
-            data: post['body'] ?? '',
-            onTapLink: (text, href, title) {
-              if (href != null && href.isNotEmpty) {
-                launchUrl(Uri.parse(href));
-              }
-            },
-            styleSheet: MarkdownStyleSheet(
-              p: AppTextStyles.body(
-                context,
-                size: 15,
-                color: AppColors.textPrimary(context),
-              ),
-              listBullet: AppTextStyles.body(
-                context,
-                size: 15,
-                color: AppColors.textPrimary(context),
-              ),
-              strong: GoogleFonts.nunito(
-                fontSize: 15,
-                color: AppColors.textPrimary(context),
-                fontWeight: FontWeight.bold,
-              ),
-              em: GoogleFonts.nunito(
-                fontSize: 15,
-                color: AppColors.textPrimary(context),
-                fontStyle: FontStyle.italic,
-              ),
-              a: GoogleFonts.nunito(
-                fontSize: 15,
-                color: AppColors.primary,
-                decoration: TextDecoration.underline,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          if (images.isNotEmpty) ...[
-            ...images.map((img) {
-              final url = img['url'] as String;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GestureDetector(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Edge-to-Edge Cover Image
+            if (images.isNotEmpty) ...[
+              ...images.map((img) {
+                final url = img['url'] as String;
+                return GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
                     showGeneralDialog(
@@ -146,52 +66,205 @@ class DetailContent extends StatelessWidget {
                     );
                   },
                   child: ListImage(url: url),
-                ),
-              );
-            }),
-          ],
-
-          Row(
-            children: [
-              PillButton(
-                icon: LucideIcons.heart,
-                filled: isLiked,
-                label: '$likeCount',
-                onTap: () {
-                  if (!isLoggedIn) {
-                    showDialog(
-                      context: context,
-                      barrierColor: Colors.transparent,
-                      builder: (_) => const LoginScreen(),
-                    );
-                  } else {
-                    context.read<PostsProvider>().toggleLike(post['id']);
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              PillButton(
-                icon: LucideIcons.messageCircle,
-                label: '$commentCount',
-                onTap: () {},
-              ),
-              const SizedBox(width: 8),
-              PillButton(
-                icon: LucideIcons.cornerUpRight,
-                onTap: () {
-                  final shareUrl = '${Uri.base.origin}/#/post/${post['id']}';
-                  Clipboard.setData(ClipboardData(text: shareUrl));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Post link copied to clipboard!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
+                );
+              }),
             ],
-          ),
-        ],
+
+            // 2. Article Content Body
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          post['title'] ?? '',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                            height: 1.25,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ),
+                      MenuDropdown(post: post),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Text(
+                    '${formatDate(post['created_at'])} • ${timeAgo(post['created_at'])}',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.body(context, size: 13),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // 3. Borderless Author Bio Box
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundImage: authorAvatar != null
+                            ? NetworkImage(authorAvatar)
+                            : null,
+                        child: authorAvatar == null
+                            ? const Icon(LucideIcons.user, size: 22)
+                            : null,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              authorName,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: AppColors.textPrimary(context),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Author on Postly',
+                              style: AppTextStyles.body(context, size: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+
+                  Divider(
+                    color: AppColors.border(context).withValues(alpha: 0.5),
+                    height: 1,
+                  ),
+                  const SizedBox(height: 28),
+
+                  // 4. Longform Article Markdown
+                  MarkdownBody(
+                    data: post['body'] ?? '',
+                    onTapLink: (text, href, title) {
+                      if (href != null && href.isNotEmpty) {
+                        launchUrl(Uri.parse(href));
+                      }
+                    },
+                    styleSheet: MarkdownStyleSheet(
+                      p: GoogleFonts.inter(
+                        fontSize: 17,
+                        height: 1.7,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      h1: GoogleFonts.inter(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      h2: GoogleFonts.inter(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      h3: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      listBullet: GoogleFonts.inter(
+                        fontSize: 17,
+                        height: 1.7,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      code: GoogleFonts.firaCode(
+                        fontSize: 14,
+                        backgroundColor: AppColors.border(context)
+                            .withValues(alpha: 0.4),
+                        color: AppColors.textPrimary(context),
+                      ),
+                      codeblockDecoration: BoxDecoration(
+                        color: AppColors.background(context),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border(context)),
+                      ),
+                      strong: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      em: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      a: GoogleFonts.inter(
+                        fontSize: 17,
+                        color: AppColors.primary,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  Divider(
+                    color: AppColors.border(context).withValues(alpha: 0.5),
+                    height: 1,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 5. Action Bar
+                  Row(
+                    children: [
+                      PillButton(
+                        icon: LucideIcons.heart,
+                        filled: isLiked,
+                        label: '$likeCount',
+                        onTap: () {
+                          if (!isLoggedIn) {
+                            showDialog(
+                              context: context,
+                              barrierColor: Colors.transparent,
+                              builder: (_) => const LoginScreen(),
+                            );
+                          } else {
+                            context.read<PostsProvider>().toggleLike(post['id']);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      PillButton(
+                        icon: LucideIcons.messageCircle,
+                        label: '$commentCount',
+                        onTap: () {},
+                      ),
+                      const SizedBox(width: 10),
+                      PillButton(
+                        icon: LucideIcons.cornerUpRight,
+                        onTap: () {
+                          final shareUrl =
+                              '${Uri.base.origin}/#/post/${post['id']}';
+                          Clipboard.setData(ClipboardData(text: shareUrl));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Post link copied to clipboard!'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
