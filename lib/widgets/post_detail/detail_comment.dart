@@ -6,12 +6,13 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
+import '../image_viewer.dart';
+import '../post_list/list_cardskeleton.dart';
+import '../user_avatar.dart';
 import '../../providers/comments_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/time_ago.dart';
 import '../../supabase_config.dart';
-import '../image_viewer.dart';
-import '../post_list/list_cardskeleton.dart';
 
 class DetailComment extends StatefulWidget {
   final String postId;
@@ -235,15 +236,7 @@ class _DetailCommentState extends State<DetailComment> {
                   // 1. Author Header: Avatar + Display Name + Bullet + Timestamp
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundImage: authorAvatar != null
-                            ? NetworkImage(authorAvatar)
-                            : null,
-                        child: authorAvatar == null
-                            ? const Icon(LucideIcons.user, size: 14)
-                            : null,
-                      ),
+                      UserAvatar(avatarUrl: authorAvatar, radius: 14),
                       const SizedBox(width: 8),
                       Text(
                         authorName,

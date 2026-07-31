@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../utils/upload_image.dart';
 import '../supabase_config.dart';
 
 class CommentsProvider extends ChangeNotifier {
@@ -89,13 +90,7 @@ class CommentsProvider extends ChangeNotifier {
     final uploadedImages = <Map<String, dynamic>>[];
 
     for (var i = 0; i < imageBytes.length; i++) {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-      final path = '$userId/$fileName';
-
-      await supabase.storage
-          .from('post_images')
-          .uploadBinary(path, imageBytes[i]);
-      final url = supabase.storage.from('post_images').getPublicUrl(path);
+      final url = await uploadPostImage(userId, imageBytes[i], i);
 
       final imageRow = await supabase
           .from('comment_images')
@@ -125,13 +120,7 @@ class CommentsProvider extends ChangeNotifier {
     }
 
     for (var i = 0; i < newImageBytes.length; i++) {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-      final path = '$userId/$fileName';
-
-      await supabase.storage
-          .from('post_images')
-          .uploadBinary(path, newImageBytes[i]);
-      final url = supabase.storage.from('post_images').getPublicUrl(path);
+      final url = await uploadPostImage(userId, newImageBytes[i], i);
 
       await supabase.from('comment_images').insert({
         'comment_id': commentId,

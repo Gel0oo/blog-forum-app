@@ -1,6 +1,7 @@
 // lib/providers/posts_provider.dart
 
 import 'package:flutter/foundation.dart';
+import '../utils/upload_image.dart';
 import '../supabase_config.dart';
 
 class PostsProvider extends ChangeNotifier {
@@ -103,13 +104,7 @@ class PostsProvider extends ChangeNotifier {
     final postId = postResponse['id'];
 
     for (var i = 0; i < imageBytes.length; i++) {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-      final path = '$userId/$fileName';
-
-      await supabase.storage
-          .from('post_images')
-          .uploadBinary(path, imageBytes[i]);
-      final url = supabase.storage.from('post_images').getPublicUrl(path);
+      final url = await uploadPostImage(userId, imageBytes[i], i);
 
       await supabase.from('post_images').insert({
         'post_id': postId,
@@ -140,13 +135,7 @@ class PostsProvider extends ChangeNotifier {
     }
 
     for (var i = 0; i < newImageBytes.length; i++) {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-      final path = '$userId/$fileName';
-
-      await supabase.storage
-          .from('post_images')
-          .uploadBinary(path, newImageBytes[i]); // <--- Changed from imageBytes to newImageBytes
-      final url = supabase.storage.from('post_images').getPublicUrl(path);
+      final url = await uploadPostImage(userId, newImageBytes[i], i);
 
       await supabase.from('post_images').insert({
         'post_id': postId,

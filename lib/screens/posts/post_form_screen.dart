@@ -1,14 +1,20 @@
 // lib/screens/posts/post_form_screen.dart
 
+import 'dart:convert';
+import 'dart:js_interop';
 import 'dart:typed_data';
+import 'package:web/web.dart' as web;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
+import '../../utils/upload_image.dart';
 import '../../providers/posts_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../supabase_config.dart';
 import '../../widgets/top_app_bar.dart';
 import '../../widgets/post_form/form_markdown.dart';
 import '../../widgets/post_form/form_imagepicker.dart';
@@ -23,7 +29,7 @@ class PostFormScreen extends StatefulWidget {
 
 class _PostFormScreenState extends State<PostFormScreen> {
   final titleController = TextEditingController();
-  late final TextEditingController bodyController;
+  late final MarkdownVisualController bodyController;
   final List<Uint8List> pickedImages = [];
   final List<String> imageIdsToDelete = [];
   List<dynamic> existingImages = [];
@@ -35,12 +41,38 @@ class _PostFormScreenState extends State<PostFormScreen> {
   @override
   void initState() {
     super.initState();
-    bodyController = MarkdownVisualController(context);
+    bodyController = MarkdownVisualController(
+      context,
+      pickedImages: pickedImages,
+    );
     if (isEditing) {
       titleController.text = widget.existingPost!['title'] ?? '';
       bodyController.text = widget.existingPost!['body'] ?? '';
       existingImages = List.from(widget.existingPost!['post_images'] ?? []);
     }
+
+    if (kIsWeb) {
+      _listenForPastedImages();
+    }
+  }
+
+  void _listenForPastedImages() {
+    web.window.addEventListener(
+      'flutter_image_pasted',
+      (web.Event event) {
+        try {
+          final customEvent = event as web.CustomEvent;
+          final dataUrl = (customEvent.detail as JSString).toDart;
+          if (dataUrl.contains(',')) {
+            final base64Str = dataUrl.split(',').last;
+            final bytes = base64Decode(base64Str);
+            if (mounted) {
+              setState(() => pickedImages.add(bytes));
+            }
+          }
+        } catch (_) {}
+      }.toJS,
+    );
   }
 
   @override
@@ -48,6 +80,39 @@ class _PostFormScreenState extends State<PostFormScreen> {
     titleController.dispose();
     bodyController.dispose();
     super.dispose();
+  }
+
+  void _onToolbarImagePicked(Uint8List bytes) {
+    setState(() => pickedImages.add(bytes));
+    final index = pickedImages.length - 1;
+    final token = 'IMAGE_$index';
+    final markdownTag = '![Image]($token)';
+
+    final currentText = bodyController.text;
+    final selection = bodyController.selection;
+
+    if (selection.isValid && selection.start >= 0) {
+      final start = selection.start;
+      final needsLeadingNewline =
+          start > 0 && !currentText.substring(0, start).endsWith('\n\n');
+      final prefix = needsLeadingNewline
+          ? (currentText.substring(0, start).endsWith('\n') ? '\n' : '\n\n')
+          : '';
+      final insertion = '$prefix$markdownTag\n\n';
+
+      final newText = currentText.replaceRange(start, selection.end, insertion);
+      bodyController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start + insertion.length),
+      );
+    } else {
+      final needsNewline =
+          currentText.isNotEmpty && !currentText.endsWith('\n\n');
+      final prefix = needsNewline
+          ? (currentText.endsWith('\n') ? '\n' : '\n\n')
+          : '';
+      bodyController.text = '$currentText$prefix$markdownTag\n\n';
+    }
   }
 
   Future<void> pickImages() async {
@@ -72,18 +137,36 @@ class _PostFormScreenState extends State<PostFormScreen> {
 
     try {
       final provider = context.read<PostsProvider>();
+      String finalBody = bodyController.text.trim();
+      final userId = supabase.auth.currentUser!.id;
+
+      for (var i = 0; i < pickedImages.length; i++) {
+        final url = await uploadPostImage(userId, pickedImages[i], i);
+
+        final token = 'IMAGE_$i';
+        finalBody = finalBody.replaceAll('![$token]($token)', '![Image]($url)');
+        finalBody = finalBody.replaceAll('($token)', '($url)');
+
+        if (isEditing) {
+          await supabase.from('post_images').insert({
+            'post_id': widget.existingPost!['id'],
+            'url': url,
+          });
+        }
+      }
+      
       if (isEditing) {
         await provider.updatePost(
           postId: widget.existingPost!['id'],
           title: titleController.text.trim(),
-          body: bodyController.text.trim(),
-          newImageBytes: pickedImages,
+          body: finalBody,
+          newImageBytes: [],
           imageIdsToDelete: imageIdsToDelete,
         );
       } else {
         await provider.createPost(
           title: titleController.text.trim(),
-          body: bodyController.text.trim(),
+          body: finalBody,
           imageBytes: pickedImages,
         );
       }
@@ -104,7 +187,7 @@ class _PostFormScreenState extends State<PostFormScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: SizedBox(
-            width: 720,
+            width: 1100,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -131,28 +214,28 @@ class _PostFormScreenState extends State<PostFormScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Title Input
+                // 1. Article Title Input
                 shadcn.TextField(
                   controller: titleController,
                   borderRadius: BorderRadius.circular(AppRadius.value),
                   border: Border.all(color: AppColors.border(context)),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
+                    horizontal: 18,
+                    vertical: 14,
                   ),
                   placeholder: Text(
                     'Title *',
-                    style: AppTextStyles.body(context, size: 14),
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary(context),
+                    ),
                   ),
                   features: const [shadcn.InputFeature.clear()],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // Markdown Editor Component
-                FormMarkdown(controller: bodyController),
-                const SizedBox(height: 16),
-
-                // Image Picker Box
+                // 2. Header Cover Photo Dropzone
                 FormImagePicker(
                   onTap: pickImages,
                   existingImages: existingImages,
@@ -163,8 +246,17 @@ class _PostFormScreenState extends State<PostFormScreen> {
                   }),
                   onRemovePicked: (index) =>
                       setState(() => pickedImages.removeAt(index)),
+                  onImageDropped: (bytes) =>
+                      setState(() => pickedImages.add(bytes)),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+
+                // 3. Markdown Body Canvas
+                FormMarkdown(
+                  controller: bodyController,
+                  onImageFilePicked: _onToolbarImagePicked,
+                ),
+                const SizedBox(height: 20),
 
                 if (error != null) ...[
                   Text(
@@ -186,8 +278,8 @@ class _PostFormScreenState extends State<PostFormScreen> {
                       onPressed: isSubmitting ? null : handleSubmit,
                       child: Text(
                         isSubmitting
-                            ? 'Posting...'
-                            : (isEditing ? 'Save Changes' : 'Post'),
+                            ? 'Publishing...'
+                            : (isEditing ? 'Save Changes' : 'Publish'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,

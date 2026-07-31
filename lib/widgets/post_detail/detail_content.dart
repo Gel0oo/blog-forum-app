@@ -7,15 +7,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../pill_button.dart';
+import '../menu_dropdown.dart';
+import '../post_list/list_image.dart';
+import '../image_viewer.dart';
+import '../user_avatar.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/time_ago.dart';
 import '../../supabase_config.dart';
-import '../pill_button.dart';
-import '../menu_dropdown.dart';
-import '../post_list/list_image.dart';
-import '../image_viewer.dart';
 import '../../screens/auth/login_screen.dart';
 
 class DetailContent extends StatelessWidget {
@@ -107,15 +108,7 @@ class DetailContent extends StatelessWidget {
                   // 3. Borderless Author Bio Box
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundImage: authorAvatar != null
-                            ? NetworkImage(authorAvatar)
-                            : null,
-                        child: authorAvatar == null
-                            ? const Icon(LucideIcons.user, size: 22)
-                            : null,
-                      ),
+                      UserAvatar(avatarUrl: authorAvatar, radius: 22),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -183,8 +176,9 @@ class DetailContent extends StatelessWidget {
                       ),
                       code: GoogleFonts.firaCode(
                         fontSize: 14,
-                        backgroundColor: AppColors.border(context)
-                            .withValues(alpha: 0.4),
+                        backgroundColor: AppColors.border(
+                          context,
+                        ).withValues(alpha: 0.4),
                         color: AppColors.textPrimary(context),
                       ),
                       codeblockDecoration: BoxDecoration(
@@ -233,7 +227,9 @@ class DetailContent extends StatelessWidget {
                               builder: (_) => const LoginScreen(),
                             );
                           } else {
-                            context.read<PostsProvider>().toggleLike(post['id']);
+                            context.read<PostsProvider>().toggleLike(
+                              post['id'],
+                            );
                           }
                         },
                       ),

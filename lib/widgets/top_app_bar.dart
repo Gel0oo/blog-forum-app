@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'user_avatar.dart';
 import '../supabase_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
@@ -353,15 +354,7 @@ class _ProfileMenu extends StatelessWidget {
                 },
               );
             },
-            child: CircleAvatar(
-              radius: 16,
-              backgroundImage: avatarUrl != null
-                  ? NetworkImage(avatarUrl!)
-                  : null,
-              child: avatarUrl == null
-                  ? const Icon(LucideIcons.user, size: 16)
-                  : null,
-            ),
+            child: UserAvatar(avatarUrl: avatarUrl, radius: 16),
           ),
         );
       },

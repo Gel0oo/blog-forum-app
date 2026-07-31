@@ -2,13 +2,54 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../theme/app_theme.dart';
 
+final _imageTagPattern = RegExp(r'!\[Image\]\([^)]*\)');
+
+/// True if [newText] only partially overlaps an ![Image](...) tag that was
+/// intact in [oldText] — i.e. someone typed or deleted INTO the tag rather
+/// than fully removing it. Fully deleting/replacing a tag is still allowed.
+bool _editBreaksImageTag(String oldText, String newText) {
+  var prefixLen = 0;
+  final maxPrefix = oldText.length < newText.length
+      ? oldText.length
+      : newText.length;
+  while (prefixLen < maxPrefix && oldText[prefixLen] == newText[prefixLen]) {
+    prefixLen++;
+  }
+
+  var suffixLen = 0;
+  final maxSuffix = maxPrefix - prefixLen;
+  while (suffixLen < maxSuffix &&
+      oldText[oldText.length - 1 - suffixLen] ==
+          newText[newText.length - 1 - suffixLen]) {
+    suffixLen++;
+  }
+
+  final editStart = prefixLen;
+  final editEnd = oldText.length - suffixLen; // exclusive, old-text coords
+
+  for (final match in _imageTagPattern.allMatches(oldText)) {
+    final overlaps = editStart < match.end && editEnd > match.start;
+    if (!overlaps) continue;
+    final fullyCovers = editStart <= match.start && editEnd >= match.end;
+    if (!fullyCovers) return true; // partial edit into a tag → reject
+  }
+  return false;
+}
+
 class MarkdownVisualController extends TextEditingController {
   final BuildContext context;
-  MarkdownVisualController(this.context, {super.text});
+  final List<Uint8List> pickedImages;
+
+  MarkdownVisualController(
+    this.context, {
+    required this.pickedImages,
+    super.text,
+  });
 
   @override
   TextSpan buildTextSpan({
@@ -17,22 +58,104 @@ class MarkdownVisualController extends TextEditingController {
     required bool withComposing,
   }) {
     final children = <InlineSpan>[];
-    final pattern =
-        RegExp(r'(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))');
+    // Regex Order: 1. Image, 2. Link (FIRST before bold), 3. Bold-Italic, 4. Bold, 5. Italic
+    final pattern = RegExp(
+      r'(!\[.*?\]\(.*?\))|(\*\*\*.*?\*\*\*)|(\*\*.*?\*\*)|(\*.*?\*)',
+    );
 
     text.splitMapJoin(
       pattern,
       onMatch: (match) {
         final fullMatch = match[0]!;
 
-        // ***bold italic***
-        if (fullMatch.startsWith('***') &&
+        // 1. Inline Image Token Badge: ![alt](IMAGE_0) or ![alt](https://...)
+        if (fullMatch.startsWith('![')) {
+          final closeBracket = fullMatch.indexOf('](');
+          final token = closeBracket != -1 && fullMatch.endsWith(')')
+              ? fullMatch.substring(closeBracket + 2, fullMatch.length - 1)
+              : '';
+
+          Widget? thumbWidget;
+
+          if (token.startsWith('IMAGE_')) {
+            final index = int.tryParse(token.replaceFirst('IMAGE_', '')) ?? -1;
+            if (index >= 0 && index < pickedImages.length) {
+              thumbWidget = ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.memory(
+                  pickedImages[index],
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                ),
+              );
+            }
+          } else if (token.startsWith('http')) {
+            thumbWidget = ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.network(
+                token,
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    const Icon(LucideIcons.image, size: 16),
+              ),
+            );
+          }
+
+          if (thumbWidget != null) {
+            children.add(
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        thumbWidget,
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Image Attached',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          } else {
+            children.add(TextSpan(text: fullMatch, style: style));
+          }
+        }
+        // 3. ***bold italic***
+        else if (fullMatch.startsWith('***') &&
             fullMatch.endsWith('***') &&
             fullMatch.length >= 6) {
           final content = fullMatch.substring(3, fullMatch.length - 3);
-          children.add(const TextSpan(
+          children.add(
+            const TextSpan(
               text: '***',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent),
+            ),
+          );
           children.add(
             TextSpan(
               text: content,
@@ -43,18 +166,24 @@ class MarkdownVisualController extends TextEditingController {
               ),
             ),
           );
-          children.add(const TextSpan(
+          children.add(
+            const TextSpan(
               text: '***',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent),
+            ),
+          );
         }
-        // **bold**
+        // 4. **bold**
         else if (fullMatch.startsWith('**') &&
             fullMatch.endsWith('**') &&
             fullMatch.length >= 4) {
           final content = fullMatch.substring(2, fullMatch.length - 2);
-          children.add(const TextSpan(
+          children.add(
+            const TextSpan(
               text: '**',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent),
+            ),
+          );
           children.add(
             TextSpan(
               text: content,
@@ -64,18 +193,24 @@ class MarkdownVisualController extends TextEditingController {
               ),
             ),
           );
-          children.add(const TextSpan(
+          children.add(
+            const TextSpan(
               text: '**',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent),
+            ),
+          );
         }
-        // *italic*
+        // 5. *italic*
         else if (fullMatch.startsWith('*') &&
             fullMatch.endsWith('*') &&
             fullMatch.length >= 2) {
           final content = fullMatch.substring(1, fullMatch.length - 1);
-          children.add(const TextSpan(
+          children.add(
+            const TextSpan(
               text: '*',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent),
+            ),
+          );
           children.add(
             TextSpan(
               text: content,
@@ -85,36 +220,12 @@ class MarkdownVisualController extends TextEditingController {
               ),
             ),
           );
-          children.add(const TextSpan(
-              text: '*',
-              style: TextStyle(fontSize: 0.001, color: Colors.transparent)));
-        }
-        // [text](url)
-        else if (fullMatch.startsWith('[') &&
-            fullMatch.contains('](') &&
-            fullMatch.endsWith(')')) {
-          final closeBracket = fullMatch.indexOf('](');
-          final linkText = fullMatch.substring(1, closeBracket);
-          final url = fullMatch.substring(
-            closeBracket + 2,
-            fullMatch.length - 1,
-          );
-
-          final muted = TextStyle(color: AppColors.textSecondary(context));
-
-          children.add(TextSpan(text: '[', style: muted));
           children.add(
-            TextSpan(
-              text: linkText,
-              style: (style ?? const TextStyle()).copyWith(
-                color: AppColors.primary,
-                decoration: TextDecoration.underline,
-              ),
+            const TextSpan(
+              text: '*',
+              style: TextStyle(fontSize: 0.001, color: Colors.transparent),
             ),
           );
-          children.add(TextSpan(text: '](', style: muted));
-          children.add(TextSpan(text: url, style: muted));
-          children.add(TextSpan(text: ')', style: muted));
         } else {
           children.add(TextSpan(text: fullMatch, style: style));
         }
@@ -132,14 +243,20 @@ class MarkdownVisualController extends TextEditingController {
 
 class FormMarkdown extends StatefulWidget {
   final TextEditingController controller;
-  const FormMarkdown({super.key, required this.controller});
+  final ValueChanged<Uint8List>? onImageFilePicked;
+
+  const FormMarkdown({
+    super.key,
+    required this.controller,
+    this.onImageFilePicked,
+  });
 
   @override
   State<FormMarkdown> createState() => _FormMarkdownState();
 }
 
 class _FormMarkdownState extends State<FormMarkdown> {
-  double _editorHeight = 200;
+  double _editorHeight = 320;
 
   String _previousText = '';
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
@@ -189,8 +306,11 @@ class _FormMarkdownState extends State<FormMarkdown> {
     }
   }
 
-  void _setControllerState(String text, TextSelection selection,
-      {bool isUndoRedo = false}) {
+  void _setControllerState(
+    String text,
+    TextSelection selection, {
+    bool isUndoRedo = false,
+  }) {
     _isProgrammaticChange = true;
     final newValue = TextEditingValue(text: text, selection: selection);
     widget.controller.value = newValue;
@@ -210,6 +330,18 @@ class _FormMarkdownState extends State<FormMarkdown> {
 
     final text = widget.controller.text;
     final selection = widget.controller.selection;
+
+    // A click/keystroke landed inside an existing image tag instead of
+    // beside it — bounce the edit back instead of letting the tag corrupt.
+    if (_editBreaksImageTag(_previousText, text)) {
+      _isProgrammaticChange = true;
+      widget.controller.value = TextEditingValue(
+        text: _previousText,
+        selection: _previousSelection,
+      );
+      _isProgrammaticChange = false;
+      return;
+    }
 
     _pushUndoState(widget.controller.value);
 
@@ -323,39 +455,105 @@ class _FormMarkdownState extends State<FormMarkdown> {
 
     if (!selection.isCollapsed) {
       final selectedText = selection.textInside(text);
-      if (selectedText.startsWith(tag) &&
-          selectedText.endsWith(tag) &&
-          selectedText.length >= tag.length * 2) {
-        final unwrapped = selectedText.substring(
-          tag.length,
-          selectedText.length - tag.length,
-        );
-        final newText = text.replaceRange(
-          selection.start,
-          selection.end,
-          unwrapped,
-        );
-        _setControllerState(
-          newText,
-          TextSelection(
-            baseOffset: selection.start,
-            extentOffset: selection.start + unwrapped.length,
-          ),
-        );
-      } else {
-        final wrapped = '$tag$selectedText$tag';
-        final newText = text.replaceRange(
-          selection.start,
-          selection.end,
-          wrapped,
-        );
-        _setControllerState(
-          newText,
-          TextSelection(
-            baseOffset: selection.start,
-            extentOffset: selection.start + wrapped.length,
-          ),
-        );
+
+      if (tag == '**') {
+        if (selectedText.startsWith('***') &&
+            selectedText.endsWith('***') &&
+            selectedText.length >= 6) {
+          final unwrapped = selectedText.substring(2, selectedText.length - 2);
+          final newText = text.replaceRange(
+            selection.start,
+            selection.end,
+            unwrapped,
+          );
+          _setControllerState(
+            newText,
+            TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + unwrapped.length,
+            ),
+          );
+        } else if (selectedText.startsWith('**') &&
+            selectedText.endsWith('**') &&
+            selectedText.length >= 4) {
+          final unwrapped = selectedText.substring(2, selectedText.length - 2);
+          final newText = text.replaceRange(
+            selection.start,
+            selection.end,
+            unwrapped,
+          );
+          _setControllerState(
+            newText,
+            TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + unwrapped.length,
+            ),
+          );
+        } else {
+          final wrapped = '**$selectedText**';
+          final newText = text.replaceRange(
+            selection.start,
+            selection.end,
+            wrapped,
+          );
+          _setControllerState(
+            newText,
+            TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + wrapped.length,
+            ),
+          );
+        }
+      } else if (tag == '*') {
+        if (selectedText.startsWith('***') &&
+            selectedText.endsWith('***') &&
+            selectedText.length >= 6) {
+          final unwrapped = selectedText.substring(1, selectedText.length - 1);
+          final newText = text.replaceRange(
+            selection.start,
+            selection.end,
+            unwrapped,
+          );
+          _setControllerState(
+            newText,
+            TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + unwrapped.length,
+            ),
+          );
+        } else if (selectedText.startsWith('*') &&
+            !selectedText.startsWith('**') &&
+            selectedText.endsWith('*') &&
+            !selectedText.endsWith('**') &&
+            selectedText.length >= 2) {
+          final unwrapped = selectedText.substring(1, selectedText.length - 1);
+          final newText = text.replaceRange(
+            selection.start,
+            selection.end,
+            unwrapped,
+          );
+          _setControllerState(
+            newText,
+            TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + unwrapped.length,
+            ),
+          );
+        } else {
+          final wrapped = '*$selectedText*';
+          final newText = text.replaceRange(
+            selection.start,
+            selection.end,
+            wrapped,
+          );
+          _setControllerState(
+            newText,
+            TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + wrapped.length,
+            ),
+          );
+        }
       }
       return;
     }
@@ -373,136 +571,14 @@ class _FormMarkdownState extends State<FormMarkdown> {
     );
   }
 
-  Future<void> _promptLink() async {
-    final text = widget.controller.text;
-    final selection = widget.controller.selection;
-    final selectedText = selection.isValid && !selection.isCollapsed
-        ? selection.textInside(text)
-        : '';
+  Future<void> _pickAndInsertImageFile() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
 
-    final urlController = TextEditingController();
-    final linkTextController = TextEditingController(text: selectedText);
-
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 380,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border(context)),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 16,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Insert Link',
-                style: AppTextStyles.heading(context, size: 18),
-              ),
-              const SizedBox(height: 16),
-              shadcn.TextField(
-                controller: linkTextController,
-                borderRadius: BorderRadius.circular(8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                placeholder: Text(
-                  'Display Text',
-                  style: AppTextStyles.body(context, size: 13),
-                ),
-                features: const [shadcn.InputFeature.clear()],
-              ),
-              const SizedBox(height: 12),
-              shadcn.TextField(
-                controller: urlController,
-                borderRadius: BorderRadius.circular(8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                placeholder: Text(
-                  'URL (e.g. https://example.com)',
-                  style: AppTextStyles.body(context, size: 13),
-                ),
-                features: const [shadcn.InputFeature.clear()],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  shadcn.SecondaryButton(
-                    density: shadcn.ButtonDensity.dense,
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 8),
-                  shadcn.PrimaryButton(
-                    density: shadcn.ButtonDensity.dense,
-                    onPressed: () {
-                      final rawUrl = urlController.text.trim();
-                      if (rawUrl.isEmpty) {
-                        Navigator.pop(context);
-                        return;
-                      }
-                      final formattedUrl = rawUrl.startsWith('http')
-                          ? rawUrl
-                          : 'https://$rawUrl';
-                      final displayText = linkTextController.text.trim().isEmpty
-                          ? formattedUrl
-                          : linkTextController.text.trim();
-
-                      Navigator.pop(context, {
-                        'text': displayText,
-                        'url': formattedUrl,
-                      });
-                    },
-                    child: const Text(
-                      'Insert',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (result != null && mounted) {
-      final linkMarkdown = '[${result['text']}](${result['url']})';
-      final currentText = widget.controller.text;
-      if (selection.isValid) {
-        final newText = currentText.replaceRange(
-          selection.start,
-          selection.end,
-          linkMarkdown,
-        );
-        _setControllerState(
-          newText,
-          TextSelection.collapsed(
-            offset: selection.start + linkMarkdown.length,
-          ),
-        );
-      } else {
-        final newText = '$currentText$linkMarkdown';
-        _setControllerState(
-          newText,
-          TextSelection.collapsed(offset: newText.length),
-        );
-      }
+    final bytes = await file.readAsBytes();
+    if (widget.onImageFilePicked != null) {
+      widget.onImageFilePicked!(bytes);
     }
   }
 
@@ -512,8 +588,11 @@ class _FormMarkdownState extends State<FormMarkdown> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
         const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): _undo,
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
-            _redo,
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          control: true,
+          shift: true,
+        ): _redo,
         const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
             _redo,
         const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
@@ -526,9 +605,6 @@ class _FormMarkdownState extends State<FormMarkdown> {
             _toggleFormat('*'),
         const SingleActivator(LogicalKeyboardKey.keyI, meta: true): () =>
             _toggleFormat('*'),
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
-            _promptLink,
-        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _promptLink,
       },
       child: Container(
         decoration: BoxDecoration(
@@ -548,17 +624,6 @@ class _FormMarkdownState extends State<FormMarkdown> {
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: 'Undo (Ctrl+Z)',
-                    icon: const Icon(LucideIcons.undo, size: 16),
-                    onPressed: _undoStack.length > 1 ? _undo : null,
-                  ),
-                  IconButton(
-                    tooltip: 'Redo (Ctrl+Y)',
-                    icon: const Icon(LucideIcons.redo, size: 16),
-                    onPressed: _redoStack.isNotEmpty ? _redo : null,
-                  ),
-                  const VerticalDivider(width: 12, indent: 6, endIndent: 6),
-                  IconButton(
                     tooltip: 'Bold (Ctrl+B)',
                     icon: const Icon(LucideIcons.bold, size: 16),
                     onPressed: () => _toggleFormat('**'),
@@ -569,9 +634,9 @@ class _FormMarkdownState extends State<FormMarkdown> {
                     onPressed: () => _toggleFormat('*'),
                   ),
                   IconButton(
-                    tooltip: 'Insert Link (Ctrl+K)',
-                    icon: const Icon(LucideIcons.link, size: 16),
-                    onPressed: _promptLink,
+                    tooltip: 'Insert Image',
+                    icon: const Icon(LucideIcons.image, size: 16),
+                    onPressed: _pickAndInsertImageFile,
                   ),
                   IconButton(
                     tooltip: 'Bullet List',
@@ -582,6 +647,17 @@ class _FormMarkdownState extends State<FormMarkdown> {
                     tooltip: 'Numbered List',
                     icon: const Icon(LucideIcons.listOrdered, size: 16),
                     onPressed: () => _formatListPrefix(isNumbered: true),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Undo (Ctrl+Z)',
+                    icon: const Icon(LucideIcons.undo, size: 16),
+                    onPressed: _undoStack.length > 1 ? _undo : null,
+                  ),
+                  IconButton(
+                    tooltip: 'Redo (Ctrl+Y)',
+                    icon: const Icon(LucideIcons.redo, size: 16),
+                    onPressed: _redoStack.isNotEmpty ? _redo : null,
                   ),
                 ],
               ),
@@ -598,8 +674,8 @@ class _FormMarkdownState extends State<FormMarkdown> {
                       border: const Border(),
                       padding: const EdgeInsets.fromLTRB(14, 14, 24, 24),
                       placeholder: Text(
-                        'Body text (optional)',
-                        style: AppTextStyles.body(context, size: 14),
+                        'Write a post...',
+                        style: AppTextStyles.body(context, size: 15),
                       ),
                     ),
                   ),
@@ -611,7 +687,7 @@ class _FormMarkdownState extends State<FormMarkdown> {
                       onPanUpdate: (details) {
                         setState(() {
                           _editorHeight = (_editorHeight + details.delta.dy)
-                              .clamp(120.0, 700.0);
+                              .clamp(200.0, 800.0);
                         });
                       },
                       child: MouseRegion(

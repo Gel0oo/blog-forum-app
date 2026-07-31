@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../../utils/inline_markdown.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../theme/app_theme.dart';
@@ -12,6 +13,7 @@ import '../../screens/posts/post_detail_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../pill_button.dart';
 import '../menu_dropdown.dart';
+import '../user_avatar.dart';
 
 class ListCard extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -48,6 +50,8 @@ class _ListCardState extends State<ListCard> {
     final authorAvatar = widget.post['author']?['avatar_url'];
     final imageUrl = images.isNotEmpty ? images[0]['url'] as String? : null;
 
+    final isHero = widget.isHero;
+
     return MouseRegion(
       onEnter: (_) => setState(() => isHovered = true),
       onExit: (_) => setState(() => isHovered = false),
@@ -71,25 +75,46 @@ class _ListCardState extends State<ListCard> {
                   : AppColors.border(context),
               width: 1.0,
             ),
-            boxShadow:
-                const [], // <--- Changed from [BoxShadow(...)] to empty list
+            boxShadow: const [],
           ),
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: isHero ? 14 : 20,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Author Meta Line
+              // 1. Most Recent Badge for Hero Card
+              if (isHero) ...[
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'MOST RECENT',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // 2. Author Meta Line
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundImage: authorAvatar != null
-                        ? NetworkImage(authorAvatar)
-                        : null,
-                    child: authorAvatar == null
-                        ? const Icon(LucideIcons.user, size: 12)
-                        : null,
-                  ),
+                  UserAvatar(avatarUrl: authorAvatar, radius: 12),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -105,11 +130,11 @@ class _ListCardState extends State<ListCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
-              // 2. Middle Hashnode Section (Content Left, Thumbnail Right if Image Exists)
+              // 3. Middle Hashnode Section (Content Left, Thumbnail Right)
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
@@ -119,29 +144,40 @@ class _ListCardState extends State<ListCard> {
                           widget.post['title'] ?? '',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.heading(context, size: 18),
+                          style: AppTextStyles.heading(
+                            context,
+                            size: isHero ? 20 : 18,
+                          ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text.rich(
                           TextSpan(
-                            children: _parseInlineMarkdown(
+                            children: parseInlineMarkdown(
+                              // was: _parseInlineMarkdown(
                               widget.post['body'] ?? '',
-                              AppTextStyles.body(context, size: 13),
+                              AppTextStyles.body(
+                                context,
+                                size: isHero ? 13 : 13,
+                              ),
                             ),
                           ),
-                          maxLines: 2,
+                          maxLines: isHero ? 2 : 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
                   if (imageUrl != null) ...[
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 20),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
-                        width: 140,
-                        height: 90,
+                        width: isHero
+                            ? 300
+                            : 140, // Expanded thumbnail width on hero
+                        height: isHero
+                            ? 150
+                            : 90, // Expanded thumbnail height on hero
                         child: AnimatedScale(
                           scale: isHovered ? 1.05 : 1.0,
                           duration: const Duration(milliseconds: 250),
@@ -152,15 +188,15 @@ class _ListCardState extends State<ListCard> {
                   ],
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               Divider(
                 color: AppColors.border(context).withValues(alpha: 0.5),
                 height: 1,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // 3. Bottom Action Bar (Likes + Comments + Read More)
+              // 4. Bottom Action Bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -229,73 +265,4 @@ class _ListCardState extends State<ListCard> {
       ),
     );
   }
-}
-
-List<InlineSpan> _parseInlineMarkdown(String text, TextStyle baseStyle) {
-  text = text.replaceAllMapped(RegExp(r'^-\s+', multiLine: true), (_) => '•  ');
-
-  final pattern = RegExp(
-    r'(\*\*\*(.+?)\*\*\*)|(\*\*(.+?)\*\*)|(\*(.+?)\*)|(\[(.+?)\]\((.+?)\))',
-  );
-
-  final spans = <InlineSpan>[];
-  int lastEnd = 0;
-
-  for (final match in pattern.allMatches(text)) {
-    if (match.start > lastEnd) {
-      spans.add(
-        TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle),
-      );
-    }
-
-    if (match.group(1) != null) {
-      spans.add(
-        TextSpan(
-          text: match.group(2),
-          style: baseStyle.copyWith(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-      );
-    } else if (match.group(3) != null) {
-      spans.add(
-        TextSpan(
-          text: match.group(4),
-          style: baseStyle.copyWith(fontWeight: FontWeight.bold),
-        ),
-      );
-    } else if (match.group(5) != null) {
-      spans.add(
-        TextSpan(
-          text: match.group(6),
-          style: baseStyle.copyWith(fontStyle: FontStyle.italic),
-        ),
-      );
-    } else if (match.group(7) != null) {
-      final rawLinkText = match.group(8) ?? '';
-      final cleanText = rawLinkText.replaceAll('*', '');
-
-      spans.add(
-        TextSpan(
-          text: cleanText,
-          style: baseStyle.copyWith(
-            decoration: TextDecoration.underline,
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
-            fontStyle: rawLinkText.contains('*')
-                ? FontStyle.italic
-                : FontStyle.normal,
-          ),
-        ),
-      );
-    }
-    lastEnd = match.end;
-  }
-
-  if (lastEnd < text.length) {
-    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
-  }
-
-  return spans;
 }

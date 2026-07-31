@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../widgets/user_avatar.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -64,7 +65,8 @@ class _PostListScreenState extends State<PostListScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 750;
-          final isTablet = constraints.maxWidth >= 750 && constraints.maxWidth < 1100;
+          final isTablet =
+              constraints.maxWidth >= 750 && constraints.maxWidth < 1100;
 
           final List<Widget> feedItems = [];
 
@@ -130,12 +132,12 @@ class _PostListScreenState extends State<PostListScreen> {
             );
 
             // B. Middle Trending Container (Top 4 Trending Posts by Likes)
-            final sortedByLikes = List<Map<String, dynamic>>.from(displayedPosts)
-              ..sort((a, b) {
-                final aLikes = ((a['post_likes'] as List?) ?? []).length;
-                final bLikes = ((b['post_likes'] as List?) ?? []).length;
-                return bLikes.compareTo(aLikes);
-              });
+            final sortedByLikes =
+                List<Map<String, dynamic>>.from(displayedPosts)..sort((a, b) {
+                  final aLikes = ((a['post_likes'] as List?) ?? []).length;
+                  final bLikes = ((b['post_likes'] as List?) ?? []).length;
+                  return bLikes.compareTo(aLikes);
+                });
 
             final top4Trending = sortedByLikes.take(4).toList();
             if (top4Trending.isNotEmpty) {
@@ -190,7 +192,8 @@ class _PostListScreenState extends State<PostListScreen> {
                               for (final post in columnPosts[col])
                                 Padding(
                                   padding: const EdgeInsets.only(
-                                      bottom: AppSpacing.lg),
+                                    bottom: AppSpacing.lg,
+                                  ),
                                   child: ListCard(
                                     post: post,
                                     scrollController: scrollController,
@@ -238,10 +241,7 @@ class _PostListScreenState extends State<PostListScreen> {
             itemCount: feedItems.length,
             itemBuilder: (context, index) {
               return Center(
-                child: SizedBox(
-                  width: maxGridWidth,
-                  child: feedItems[index],
-                ),
+                child: SizedBox(width: maxGridWidth, child: feedItems[index]),
               );
             },
           );
@@ -323,8 +323,9 @@ class _PostListScreenState extends State<PostListScreen> {
                         for (int i = 0; i < posts.length; i += 2) ...[
                           if (i > 0)
                             Divider(
-                              color: AppColors.border(context)
-                                  .withValues(alpha: 0.5),
+                              color: AppColors.border(
+                                context,
+                              ).withValues(alpha: 0.5),
                               height: 24,
                             ),
                           _TrendingCompactRow(
@@ -345,8 +346,9 @@ class _PostListScreenState extends State<PostListScreen> {
                         for (int i = 1; i < posts.length; i += 2) ...[
                           if (i > 1)
                             Divider(
-                              color: AppColors.border(context)
-                                  .withValues(alpha: 0.5),
+                              color: AppColors.border(
+                                context,
+                              ).withValues(alpha: 0.5),
                               height: 24,
                             ),
                           _TrendingCompactRow(
@@ -421,15 +423,7 @@ class _TrendingCompactRowState extends State<_TrendingCompactRow> {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundImage: authorAvatar != null
-                              ? NetworkImage(authorAvatar)
-                              : null,
-                          child: authorAvatar == null
-                              ? const Icon(LucideIcons.user, size: 12)
-                              : null,
-                        ),
+                        UserAvatar(avatarUrl: authorAvatar, radius: 12),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -467,9 +461,9 @@ class _TrendingCompactRowState extends State<_TrendingCompactRow> {
                                 builder: (_) => const LoginScreen(),
                               );
                             } else {
-                              context
-                                  .read<PostsProvider>()
-                                  .toggleLike(widget.post['id']);
+                              context.read<PostsProvider>().toggleLike(
+                                widget.post['id'],
+                              );
                             }
                           },
                         ),
@@ -502,10 +496,7 @@ class _TrendingCompactRowState extends State<_TrendingCompactRow> {
                       scale: isHovered ? 1.08 : 1.0,
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.network(imageUrl, fit: BoxFit.cover),
                     ),
                   ),
                 ),
