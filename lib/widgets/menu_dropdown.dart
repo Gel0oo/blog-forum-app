@@ -102,12 +102,12 @@ class _MenuDropdownState extends State<MenuDropdown> {
 
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    // 1. MOBILE ROUTE: PopupMenuButton (Zero crashes on mobile web)
+    // Mobile Route
     if (isMobile) {
       return PopupMenuButton<String>(
         tooltip: 'Post Options',
         padding: EdgeInsets.zero,
-        position: PopupMenuPosition.under, // <-- Opens BELOW the button
+        position: PopupMenuPosition.under,
         offset: const Offset(0, 4),
         color: AppColors.cardBackground(context),
         elevation: 8,
@@ -172,7 +172,7 @@ class _MenuDropdownState extends State<MenuDropdown> {
       );
     }
 
-    // 2. DESKTOP ROUTE: 100% Original shadcn.showDropdown
+    // Desktop Route
     return Builder(
       builder: (btnContext) {
         return IconButton(

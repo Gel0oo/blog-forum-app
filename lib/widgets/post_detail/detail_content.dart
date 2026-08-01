@@ -50,7 +50,7 @@ class DetailContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Edge-to-Edge Cover Image
+            //  Edge-to-Edge Cover Image
             if (images.length == 1)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -72,7 +72,7 @@ class DetailContent extends StatelessWidget {
                 urls: images.map((img) => img['url'] as String).toList(),
               ),
 
-            // 2. Article Content Body
+            // Article Content Body
             Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
@@ -98,7 +98,7 @@ class DetailContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
 
-                  // 3. Borderless Author Bio Box
+                  // Borderless Author Bio Box
                   Row(
                     children: [
                       UserAvatar(avatarUrl: authorAvatar, radius: 22),
@@ -134,7 +134,7 @@ class DetailContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
 
-                  // 4. Longform Article Markdown
+                  // Longform Article Markdown
                   MarkdownBody(
                     data: post['body'] ?? '',
                     onTapLink: (text, href, title) {
@@ -206,7 +206,7 @@ class DetailContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // 5. Action Bar
+                  // Action Bar
                   Row(
                     children: [
                       PillButton(

@@ -9,12 +9,21 @@
   <title>Postly</title>
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <script>
+    (function() {
+      var saved = localStorage.getItem('theme_mode');
+      var isDark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.style.setProperty('--bg', isDark ? '#16191c' : '#ffffff');
+      document.documentElement.style.setProperty('--dot', isDark ? '#6366f1' : '#4f46e5');
+    })();
+  </script>
+
   <style>
     html,
     body,
     flutter-view,
     flt-glass-pane {
-      background-color: #16191c !important;
+      background-color: var(--bg) !important;
       margin: 0;
       padding: 0;
       width: 100%;
@@ -33,7 +42,7 @@
     .dot {
       width: 12px;
       height: 12px;
-      background-color: #6366f1;
+      background-color: var(--dot);
       border-radius: 50%;
       animation: bounce 1.4s infinite ease-in-out both;
     }

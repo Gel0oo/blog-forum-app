@@ -203,14 +203,14 @@ class _MyAppState extends State<MyApp> {
             debugShowCheckedModeBanner: false,
             themeMode: themeProvider.themeMode,
             theme: ThemeData(
-              colorScheme: ColorSchemes.slate(ThemeMode.dark).copyWith(
+              colorScheme: ColorSchemes.slate(ThemeMode.light).copyWith(
                 primary: () => AppColors.primary,
                 ring: () => AppColors.primary,
-                background: () => const Color(0xFF16191C),
-                card: () => const Color(0xFF1C2024),
-                border: () => const Color(0xFF2F3338),
-                popover: () => const Color(0xFF25292E),
-                popoverForeground: () => const Color(0xFFE3E4E6),
+                background: () => const Color(0xFFFFFFFF),
+                card: () => const Color(0xFFFFFFFF),
+                border: () => const material.Color.fromARGB(255, 211, 212, 214),
+                popover: () => const Color(0xFFFFFFFF),
+                popoverForeground: () => const material.Color.fromARGB(255, 229, 230, 231),
               ),
               scaling: 1.15,
             ),
@@ -256,7 +256,6 @@ class _MyAppState extends State<MyApp> {
                     child: material.Theme(
                       data: materialTheme,
                       child: Container(
-                        color: const Color(0xFF16191C),
                         child: child!,
                       ),
                     ),
