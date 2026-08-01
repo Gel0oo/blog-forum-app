@@ -18,6 +18,7 @@ import '../../widgets/post_list/list_cardskeleton.dart';
 import '../../widgets/pill_button.dart';
 import '../../widgets/menu_dropdown.dart';
 import '../../main.dart';
+import 'mobile_post_list.dart'; // <-- Imports Mobile Feed
 
 class PostListScreen extends StatefulWidget {
   const PostListScreen({super.key});
@@ -65,13 +66,16 @@ class _PostListScreenState extends State<PostListScreen> {
       appBar: const TopAppBar(),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 750;
-          final isTablet =
-              constraints.maxWidth >= 750 && constraints.maxWidth < 1100;
+          // 1. MOBILE VIEW: Delegates directly to Hashnode Mobile Feed (<750px)
+          if (constraints.maxWidth < 750) {
+            return const MobilePostList();
+          }
 
+          // 2. DESKTOP VIEW
+          final isTablet = constraints.maxWidth < 1100;
           final List<Widget> feedItems = [];
 
-          // 1. Loading State
+          // Loading State
           if (postsProvider.isLoading && postsProvider.posts.isEmpty) {
             feedItems.add(
               const Padding(
@@ -85,31 +89,19 @@ class _PostListScreenState extends State<PostListScreen> {
                 child: TrendingSkeleton(),
               ),
             );
-            if (isMobile) {
-              feedItems.add(
-                const Column(
-                  children: [
-                    ListCardSkeleton(),
-                    SizedBox(height: AppSpacing.lg),
-                    ListCardSkeleton(),
-                  ],
-                ),
-              );
-            } else {
-              feedItems.add(
-                const Row(
-                  children: [
-                    Expanded(child: ListCardSkeleton()),
-                    SizedBox(width: AppSpacing.lg),
-                    Expanded(child: ListCardSkeleton()),
-                    SizedBox(width: AppSpacing.lg),
-                    Expanded(child: ListCardSkeleton()),
-                  ],
-                ),
-              );
-            }
+            feedItems.add(
+              const Row(
+                children: [
+                  Expanded(child: ListCardSkeleton()),
+                  SizedBox(width: AppSpacing.lg),
+                  Expanded(child: ListCardSkeleton()),
+                  SizedBox(width: AppSpacing.lg),
+                  Expanded(child: ListCardSkeleton()),
+                ],
+              ),
+            );
           }
-          // 2. Empty State
+          // Empty State
           else if (!postsProvider.isLoading && displayedPosts.isEmpty) {
             feedItems.add(
               Padding(
@@ -123,9 +115,9 @@ class _PostListScreenState extends State<PostListScreen> {
               ),
             );
           }
-          // 3. Single Unified Publication Feed
+          // Desktop Publication Feed
           else {
-            // A. Top Big Featured Hero Banner (Most Recent Post)
+            // A. Top Big Featured Hero Banner
             final heroPost = displayedPosts.first;
             feedItems.add(
               Padding(
@@ -138,7 +130,7 @@ class _PostListScreenState extends State<PostListScreen> {
               ),
             );
 
-            // B. Middle Trending Container (Top 4 Trending Posts by Likes)
+            // B. Middle Trending Container
             final sortedByLikes =
                 List<Map<String, dynamic>>.from(displayedPosts)..sort((a, b) {
                   final aLikes = ((a['post_likes'] as List?) ?? []).length;
@@ -154,84 +146,68 @@ class _PostListScreenState extends State<PostListScreen> {
                   child: _buildHashnodeTrendingSection(
                     context,
                     top4Trending,
-                    isMobile,
+                    false,
                   ),
                 ),
               );
             }
 
-            // C. Bottom Remaining Posts in 3-Column Masonry Grid
+            // C. Bottom Remaining Posts in 2/3 Column Grid
             final remainingPosts = displayedPosts.length > 1
                 ? displayedPosts.sublist(1)
                 : <Map<String, dynamic>>[];
 
             if (remainingPosts.isNotEmpty) {
-              if (isMobile) {
-                for (final post in remainingPosts) {
-                  feedItems.add(
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                      child: ListCard(
-                        post: post,
-                        scrollController: scrollController,
-                      ),
-                    ),
-                  );
-                }
-              } else {
-                final int numColumns = isTablet ? 2 : 3;
-                final List<List<Map<String, dynamic>>> columnPosts =
-                    List.generate(numColumns, (_) => []);
+              final int numColumns = isTablet ? 2 : 3;
+              final List<List<Map<String, dynamic>>> columnPosts =
+                  List.generate(numColumns, (_) => []);
 
-                for (int i = 0; i < remainingPosts.length; i++) {
-                  columnPosts[i % numColumns].add(remainingPosts[i]);
-                }
-
-                feedItems.add(
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (int col = 0; col < numColumns; col++) ...[
-                        if (col > 0) const SizedBox(width: AppSpacing.lg),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              for (final post in columnPosts[col])
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.lg,
-                                  ),
-                                  child: ListCard(
-                                    post: post,
-                                    scrollController: scrollController,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
+              for (int i = 0; i < remainingPosts.length; i++) {
+                columnPosts[i % numColumns].add(remainingPosts[i]);
               }
+
+              feedItems.add(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (int col = 0; col < numColumns; col++) ...[
+                      if (col > 0) const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            for (final post in columnPosts[col])
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.lg,
+                                ),
+                                child: ListCard(
+                                  post: post,
+                                  scrollController: scrollController,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
             }
 
             // D. Pagination Skeleton
             if (postsProvider.hasMore) {
               feedItems.add(
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: isMobile
-                      ? const ListCardSkeleton()
-                      : const Row(
-                          children: [
-                            Expanded(child: ListCardSkeleton()),
-                            SizedBox(width: AppSpacing.lg),
-                            Expanded(child: ListCardSkeleton()),
-                            SizedBox(width: AppSpacing.lg),
-                            Expanded(child: ListCardSkeleton()),
-                          ],
-                        ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: Row(
+                    children: [
+                      Expanded(child: ListCardSkeleton()),
+                      SizedBox(width: AppSpacing.lg),
+                      Expanded(child: ListCardSkeleton()),
+                      SizedBox(width: AppSpacing.lg),
+                      Expanded(child: ListCardSkeleton()),
+                    ],
+                  ),
                 ),
               );
             }
@@ -241,8 +217,8 @@ class _PostListScreenState extends State<PostListScreen> {
 
           return ListView.builder(
             controller: scrollController,
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : 24,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
               vertical: AppSpacing.md,
             ),
             itemCount: feedItems.length,
@@ -257,7 +233,7 @@ class _PostListScreenState extends State<PostListScreen> {
     );
   }
 
-  // Hashnode Trending Container (Top 4 Posts)
+  // Desktop Hashnode Trending Container (Top 4 Posts)
   Widget _buildHashnodeTrendingSection(
     BuildContext context,
     List<Map<String, dynamic>> posts,
@@ -270,16 +246,12 @@ class _PostListScreenState extends State<PostListScreen> {
           color: AppColors.cardBackground(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withValues(
-              alpha: 0.35,
-            ), // Primary indigo border
+            color: AppColors.primary.withValues(alpha: 0.35),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(
-                alpha: 0.18,
-              ), // Primary Indigo Outer Glow
+              color: AppColors.primary.withValues(alpha: 0.18),
               blurRadius: 24,
               spreadRadius: 1,
               offset: const Offset(0, 4),
@@ -300,9 +272,7 @@ class _PostListScreenState extends State<PostListScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(
-                          alpha: 0.8,
-                        ), // Glowing dot indicator
+                        color: AppColors.primary.withValues(alpha: 0.8),
                         blurRadius: 6,
                         spreadRadius: 2,
                       ),
@@ -322,72 +292,55 @@ class _PostListScreenState extends State<PostListScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            if (isMobile)
-              Column(
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (int i = 0; i < posts.length; i++) ...[
-                    if (i > 0)
-                      Divider(
-                        color: AppColors.border(context).withValues(alpha: 0.5),
-                        height: 24,
-                      ),
-                    _TrendingCompactRow(
-                      post: posts[i],
-                      scrollController: scrollController,
+                  Expanded(
+                    child: Column(
+                      children: [
+                        for (int i = 0; i < posts.length; i += 2) ...[
+                          if (i > 0)
+                            Divider(
+                              color: AppColors.border(
+                                context,
+                              ).withValues(alpha: 0.5),
+                              height: 24,
+                            ),
+                          _TrendingCompactRow(
+                            post: posts[i],
+                            scrollController: scrollController,
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
+                  VerticalDivider(
+                    color: AppColors.border(context).withValues(alpha: 0.5),
+                    width: 32,
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        for (int i = 1; i < posts.length; i += 2) ...[
+                          if (i > 1)
+                            Divider(
+                              color: AppColors.border(
+                                context,
+                              ).withValues(alpha: 0.5),
+                              height: 24,
+                            ),
+                          _TrendingCompactRow(
+                            post: posts[i],
+                            scrollController: scrollController,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
-              )
-            else
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          for (int i = 0; i < posts.length; i += 2) ...[
-                            if (i > 0)
-                              Divider(
-                                color: AppColors.border(
-                                  context,
-                                ).withValues(alpha: 0.5),
-                                height: 24,
-                              ),
-                            _TrendingCompactRow(
-                              post: posts[i],
-                              scrollController: scrollController,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    VerticalDivider(
-                      color: AppColors.border(context).withValues(alpha: 0.5),
-                      width: 32,
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          for (int i = 1; i < posts.length; i += 2) ...[
-                            if (i > 1)
-                              Divider(
-                                color: AppColors.border(
-                                  context,
-                                ).withValues(alpha: 0.5),
-                                height: 24,
-                              ),
-                            _TrendingCompactRow(
-                              post: posts[i],
-                              scrollController: scrollController,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
+            ),
           ],
         ),
       ),

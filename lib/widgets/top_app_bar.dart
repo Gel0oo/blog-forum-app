@@ -18,6 +18,7 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/posts/post_form_screen.dart';
+import 'mobile/mobile_top_app_bar.dart';
 
 class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TopAppBar({super.key});
@@ -27,6 +28,9 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 650) {
+      return const MobileTopAppBar();
+    }
     final isLoggedIn = context.watch<AuthProvider>().isLoggedIn;
     final profileProvider = context.watch<ProfileProvider>();
 

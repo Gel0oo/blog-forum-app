@@ -1,13 +1,13 @@
-// lib/widgets/post_list/menu_dropdown.dart
+// lib/widgets/menu_dropdown.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
-import '../../providers/posts_provider.dart';
-import '../../supabase_config.dart';
-import '../../theme/app_theme.dart';
-import '../../screens/posts/post_form_screen.dart';
+import '../providers/posts_provider.dart';
+import '../supabase_config.dart';
+import '../theme/app_theme.dart';
+import '../screens/posts/post_form_screen.dart';
 
 class MenuDropdown extends StatefulWidget {
   final Map<String, dynamic>? post;
@@ -96,11 +96,83 @@ class _MenuDropdownState extends State<MenuDropdown> {
     final isOwner =
         widget.post != null && widget.post!['user_id'] == currentUserId;
 
-    // Hide 3-dots icon completely if user is not the author
     if (!isOwner) {
       return const SizedBox.shrink();
     }
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    // 1. MOBILE ROUTE: PopupMenuButton (Zero crashes on mobile web)
+    if (isMobile) {
+      return PopupMenuButton<String>(
+        tooltip: 'Post Options',
+        padding: EdgeInsets.zero,
+        position: PopupMenuPosition.under, // <-- Opens BELOW the button
+        offset: const Offset(0, 4),
+        color: AppColors.cardBackground(context),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.border(context)),
+        ),
+        onSelected: (value) {
+          if (value == 'edit') {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PostFormScreen(existingPost: widget.post),
+              ),
+            );
+          } else if (value == 'delete') {
+            _confirmDelete();
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(
+                  LucideIcons.pencil,
+                  size: 16,
+                  color: AppColors.textPrimary(context),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Edit post',
+                  style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(LucideIcons.trash2, size: 16, color: Colors.redAccent),
+                SizedBox(width: 10),
+                Text(
+                  'Delete post',
+                  style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Icon(
+            LucideIcons.moreHorizontal,
+            size: 20,
+            color: AppColors.textSecondary(context),
+          ),
+        ),
+      );
+    }
+
+    // 2. DESKTOP ROUTE: 100% Original shadcn.showDropdown
     return Builder(
       builder: (btnContext) {
         return IconButton(
