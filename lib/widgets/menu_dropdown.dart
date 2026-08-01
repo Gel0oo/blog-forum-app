@@ -49,12 +49,27 @@ class _MenuDropdownState extends State<MenuDropdown> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post?'),
+        backgroundColor: AppColors.cardBackground(dialogContext),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.border(dialogContext)),
+        ),
+        title: Text(
+          'Delete Post',
+          style: AppTextStyles.heading(dialogContext, size: 18),
+        ),
+        content: Text(
+          'Are you sure you want to delete this post?',
+          style: AppTextStyles.body(dialogContext, size: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary(dialogContext)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

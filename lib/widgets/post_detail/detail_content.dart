@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../pill_button.dart';
 import '../menu_dropdown.dart';
 import '../post_list/list_image.dart';
+import 'detail_image_carousel.dart';
 import '../image_viewer.dart';
 import '../user_avatar.dart';
 import '../../providers/auth_provider.dart';
@@ -50,26 +51,26 @@ class DetailContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 1. Edge-to-Edge Cover Image
-            if (images.isNotEmpty) ...[
-              ...images.map((img) {
-                final url = img['url'] as String;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    showGeneralDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      barrierLabel: 'Close image',
-                      barrierColor: Colors.transparent,
-                      pageBuilder: (context, animation, secondaryAnimation) {
-                        return ImageViewerScreen(url: url);
-                      },
-                    );
-                  },
-                  child: ListImage(url: url),
-                );
-              }),
-            ],
+            if (images.length == 1)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  showGeneralDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierLabel: 'Close image',
+                    barrierColor: Colors.transparent,
+                    pageBuilder: (context, animation, secondaryAnimation) {
+                      return ImageViewerScreen(url: images[0]['url']);
+                    },
+                  );
+                },
+                child: ListImage(url: images[0]['url']),
+              )
+            else if (images.length > 1)
+              DetailImageCarousel(
+                urls: images.map((img) => img['url'] as String).toList(),
+              ),
 
             // 2. Article Content Body
             Padding(
@@ -77,24 +78,16 @@ class DetailContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          post['title'] ?? '',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            height: 1.25,
-                            color: AppColors.textPrimary(context),
-                          ),
-                        ),
-                      ),
-                      MenuDropdown(post: post),
-                    ],
+                  Text(
+                    post['title'] ?? '',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      height: 1.25,
+                      color: AppColors.textPrimary(context),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
@@ -130,6 +123,7 @@ class DetailContent extends StatelessWidget {
                           ],
                         ),
                       ),
+                      MenuDropdown(post: post),
                     ],
                   ),
                   const SizedBox(height: 28),

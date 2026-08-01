@@ -65,14 +65,43 @@ class _DetailCommentState extends State<DetailComment> {
     final newBody = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Comment'),
-        content: TextField(controller: editController, maxLines: 3),
+        backgroundColor: AppColors.cardBackground(context),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.border(context)),
+        ),
+        title: Text(
+          'Edit Comment',
+          style: AppTextStyles.heading(context, size: 18),
+        ),
+        content: TextField(
+          controller: editController,
+          maxLines: 3,
+          style: AppTextStyles.body(context, size: 14),
+          cursorColor: AppColors.primary,
+          decoration: InputDecoration(
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.border(context)),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary),
+            ),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary(context)),
+            ),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(context, editController.text),
             child: const Text('Save'),
           ),

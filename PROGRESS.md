@@ -27,7 +27,6 @@
 - [x] 6. Tap-to-enlarge image viewer
 - [x] 7. Dark/Light Mode
 - [ ] 8. Mobile browser compatible
-- [ ] 9. Report button doesnt work. No actual functionality yet :D
 
 ## Few bug fixes
 - [x] Postly Logo does not take you to the main page.
@@ -50,6 +49,7 @@
 - Storage bucket is Public (handles reads), 2 policies added for insert (authenticated only) and delete (owner only, checked via folder name = user_id).
 - Should have a tap to enlarge image view for comments and posts.
 - An actual button for the dark/light mode.
+- Removed alot of stuffs, redesigned alot of stuffs, fixed alot of stuffs, added more stuffs.
 
 ## Environment
 - Supabase project name: blog_forum_app

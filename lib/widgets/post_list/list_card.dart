@@ -14,6 +14,7 @@ import '../../screens/auth/login_screen.dart';
 import '../pill_button.dart';
 import '../menu_dropdown.dart';
 import '../user_avatar.dart';
+import 'list_cardskeleton.dart';
 
 class ListCard extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -52,214 +53,232 @@ class _ListCardState extends State<ListCard> {
 
     final isHero = widget.isHero;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => isHovered = true),
-      onExit: (_) => setState(() => isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => PostDetailScreen(post: widget.post),
+    return FadeSlideUp(
+      delay: isHero ? const Duration(milliseconds: 700) : Duration.zero,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => isHovered = true),
+        onExit: (_) => setState(() => isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => PostDetailScreen(post: widget.post),
+              ),
+            );
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground(context),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isHovered
+                    ? AppColors.primary.withValues(alpha: 0.6)
+                    : AppColors.border(context),
+                width: 1.0,
+              ),
+              boxShadow: const [],
             ),
-          );
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground(context),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isHovered
-                  ? AppColors.primary.withValues(alpha: 0.6)
-                  : AppColors.border(context),
-              width: 1.0,
+            padding: EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: isHero ? 14 : 20,
             ),
-            boxShadow: const [],
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: isHero ? 14 : 20,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Most Recent Badge for Hero Card
-              if (isHero) ...[
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Most Recent Badge for Hero Card
+                if (isHero) ...[
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'MOST RECENT',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // 2. Author Meta Line
                 Row(
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
+                    UserAvatar(avatarUrl: authorAvatar, radius: 12),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'by $authorName • ${timeAgo(widget.post['created_at'])}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body(context, size: 12),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'MOST RECENT',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                        color: AppColors.primary,
-                      ),
+                    MenuDropdown(
+                      post: widget.post,
+                      scrollController: widget.scrollController,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-              ],
 
-              // 2. Author Meta Line
-              Row(
-                children: [
-                  UserAvatar(avatarUrl: authorAvatar, radius: 12),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'by $authorName • ${timeAgo(widget.post['created_at'])}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.body(context, size: 12),
-                    ),
-                  ),
-                  MenuDropdown(
-                    post: widget.post,
-                    scrollController: widget.scrollController,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // 3. Middle Hashnode Section (Content Left, Thumbnail Right)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.post['title'] ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.heading(
-                            context,
-                            size: isHero ? 20 : 18,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text.rich(
-                          TextSpan(
-                            children: parseInlineMarkdown(
-                              // was: _parseInlineMarkdown(
-                              widget.post['body'] ?? '',
-                              AppTextStyles.body(
-                                context,
-                                size: isHero ? 13 : 13,
-                              ),
+                // 3. Middle Hashnode Section (Content Left, Thumbnail Right)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.post['title'] ?? '',
+                            maxLines: isHero ? 2 : 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.heading(
+                              context,
+                              size: isHero ? 26 : 18,
                             ),
                           ),
-                          maxLines: isHero ? 2 : 2,
-                          overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: 6),
+                          Text.rich(
+                            TextSpan(
+                              children: parseInlineMarkdown(
+                                widget.post['body'] ?? '',
+                                AppTextStyles.body(
+                                  context,
+                                  size: isHero ? 15 : 13,
+                                ),
+                              ),
+                            ),
+                            maxLines: isHero ? 2 : 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (imageUrl != null) ...[
+                      const SizedBox(width: 20),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          width: isHero ? 300 : 140,
+                          height: isHero ? 150 : 90,
+                          child: AnimatedScale(
+                            scale: isHovered ? 1.05 : 1.0,
+                            duration: const Duration(milliseconds: 250),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              frameBuilder:
+                                  (
+                                    context,
+                                    child,
+                                    frame,
+                                    wasSynchronouslyLoaded,
+                                  ) {
+                                    if (wasSynchronouslyLoaded ||
+                                        frame != null) {
+                                      return child;
+                                    }
+                                    return const SkeletonBox(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      borderRadius: BorderRadius.zero,
+                                    );
+                                  },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Divider(
+                  color: AppColors.border(context).withValues(alpha: 0.5),
+                  height: 1,
+                ),
+                const SizedBox(height: 10),
+
+                // 4. Bottom Action Bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        PillButton(
+                          icon: LucideIcons.heart,
+                          filled: isLiked,
+                          label: '$likeCount',
+                          onTap: () {
+                            if (!isLoggedIn) {
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.transparent,
+                                builder: (_) => const LoginScreen(),
+                              );
+                            } else {
+                              context.read<PostsProvider>().toggleLike(
+                                widget.post['id'],
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        PillButton(
+                          icon: LucideIcons.messageCircle,
+                          label: '$commentCount',
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PostDetailScreen(post: widget.post),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
-                  ),
-                  if (imageUrl != null) ...[
-                    const SizedBox(width: 20),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(
-                        width: isHero
-                            ? 300
-                            : 140, // Expanded thumbnail width on hero
-                        height: isHero
-                            ? 150
-                            : 90, // Expanded thumbnail height on hero
-                        child: AnimatedScale(
-                          scale: isHovered ? 1.05 : 1.0,
-                          duration: const Duration(milliseconds: 250),
-                          child: Image.network(imageUrl, fit: BoxFit.cover),
+                    Row(
+                      children: [
+                        Text(
+                          'Read more',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isHovered
+                                ? AppColors.primary
+                                : AppColors.textPrimary(context),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Divider(
-                color: AppColors.border(context).withValues(alpha: 0.5),
-                height: 1,
-              ),
-              const SizedBox(height: 10),
-
-              // 4. Bottom Action Bar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      PillButton(
-                        icon: LucideIcons.heart,
-                        filled: isLiked,
-                        label: '$likeCount',
-                        onTap: () {
-                          if (!isLoggedIn) {
-                            showDialog(
-                              context: context,
-                              barrierColor: Colors.transparent,
-                              builder: (_) => const LoginScreen(),
-                            );
-                          } else {
-                            context.read<PostsProvider>().toggleLike(
-                              widget.post['id'],
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      PillButton(
-                        icon: LucideIcons.messageCircle,
-                        label: '$commentCount',
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  PostDetailScreen(post: widget.post),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        'Read more',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(width: 4),
+                        Icon(
+                          LucideIcons.arrowRight,
+                          size: 13,
                           color: isHovered
                               ? AppColors.primary
                               : AppColors.textPrimary(context),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        LucideIcons.arrowRight,
-                        size: 13,
-                        color: isHovered
-                            ? AppColors.primary
-                            : AppColors.textPrimary(context),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

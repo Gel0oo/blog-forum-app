@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../main.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/comments_provider.dart';
 import '../../theme/app_theme.dart';
@@ -36,6 +37,7 @@ class _PostDetailBody extends StatefulWidget {
 }
 
 class _PostDetailBodyState extends State<_PostDetailBody> {
+  final scrollController = SmoothScrollController();
   bool notFound = false;
 
   @override
@@ -58,6 +60,12 @@ class _PostDetailBodyState extends State<_PostDetailBody> {
             );
       });
     }
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -104,6 +112,7 @@ class _PostDetailBodyState extends State<_PostDetailBody> {
       backgroundColor: AppColors.background(context),
       appBar: const TopAppBar(),
       body: SingleChildScrollView(
+        controller: scrollController, // <-- Explicit SmoothScrollController
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Center(
           child: SizedBox(

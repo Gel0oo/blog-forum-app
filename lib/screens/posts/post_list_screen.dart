@@ -17,6 +17,7 @@ import '../../widgets/post_list/list_card.dart';
 import '../../widgets/post_list/list_cardskeleton.dart';
 import '../../widgets/pill_button.dart';
 import '../../widgets/menu_dropdown.dart';
+import '../../main.dart';
 
 class PostListScreen extends StatefulWidget {
   const PostListScreen({super.key});
@@ -26,7 +27,7 @@ class PostListScreen extends StatefulWidget {
 }
 
 class _PostListScreenState extends State<PostListScreen> {
-  final scrollController = ScrollController();
+  final scrollController = SmoothScrollController();
 
   @override
   void initState() {
@@ -76,6 +77,12 @@ class _PostListScreenState extends State<PostListScreen> {
               const Padding(
                 padding: EdgeInsets.only(bottom: AppSpacing.xl),
                 child: ListCardSkeleton(isHero: true),
+              ),
+            );
+            feedItems.add(
+              const Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.xl),
+                child: TrendingSkeleton(),
               ),
             );
             if (isMobile) {
@@ -256,113 +263,133 @@ class _PostListScreenState extends State<PostListScreen> {
     List<Map<String, dynamic>> posts,
     bool isMobile,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border(context)),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 12,
-            offset: Offset(0, 4),
+    return FadeSlideUp(
+      delay: const Duration(milliseconds: 500),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primary.withValues(
+              alpha: 0.35,
+            ), // Primary indigo border
+            width: 1.2,
           ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'TRENDING DISCUSSIONS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  color: AppColors.textSecondary(context),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (isMobile)
-            Column(
-              children: [
-                for (int i = 0; i < posts.length; i++) ...[
-                  if (i > 0)
-                    Divider(
-                      color: AppColors.border(context).withValues(alpha: 0.5),
-                      height: 24,
-                    ),
-                  _TrendingCompactRow(
-                    post: posts[i],
-                    scrollController: scrollController,
-                  ),
-                ],
-              ],
-            )
-          else
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        for (int i = 0; i < posts.length; i += 2) ...[
-                          if (i > 0)
-                            Divider(
-                              color: AppColors.border(
-                                context,
-                              ).withValues(alpha: 0.5),
-                              height: 24,
-                            ),
-                          _TrendingCompactRow(
-                            post: posts[i],
-                            scrollController: scrollController,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  VerticalDivider(
-                    color: AppColors.border(context).withValues(alpha: 0.5),
-                    width: 32,
-                  ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        for (int i = 1; i < posts.length; i += 2) ...[
-                          if (i > 1)
-                            Divider(
-                              color: AppColors.border(
-                                context,
-                              ).withValues(alpha: 0.5),
-                              height: 24,
-                            ),
-                          _TrendingCompactRow(
-                            post: posts[i],
-                            scrollController: scrollController,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(
+                alpha: 0.18,
+              ), // Primary Indigo Outer Glow
+              blurRadius: 24,
+              spreadRadius: 1,
+              offset: const Offset(0, 4),
             ),
-        ],
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(
+                          alpha: 0.8,
+                        ), // Glowing dot indicator
+                        blurRadius: 6,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'TRENDING DISCUSSIONS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (isMobile)
+              Column(
+                children: [
+                  for (int i = 0; i < posts.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        color: AppColors.border(context).withValues(alpha: 0.5),
+                        height: 24,
+                      ),
+                    _TrendingCompactRow(
+                      post: posts[i],
+                      scrollController: scrollController,
+                    ),
+                  ],
+                ],
+              )
+            else
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < posts.length; i += 2) ...[
+                            if (i > 0)
+                              Divider(
+                                color: AppColors.border(
+                                  context,
+                                ).withValues(alpha: 0.5),
+                                height: 24,
+                              ),
+                            _TrendingCompactRow(
+                              post: posts[i],
+                              scrollController: scrollController,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    VerticalDivider(
+                      color: AppColors.border(context).withValues(alpha: 0.5),
+                      width: 32,
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          for (int i = 1; i < posts.length; i += 2) ...[
+                            if (i > 1)
+                              Divider(
+                                color: AppColors.border(
+                                  context,
+                                ).withValues(alpha: 0.5),
+                                height: 24,
+                              ),
+                            _TrendingCompactRow(
+                              post: posts[i],
+                              scrollController: scrollController,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -496,7 +523,21 @@ class _TrendingCompactRowState extends State<_TrendingCompactRow> {
                       scale: isHovered ? 1.08 : 1.0,
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
-                      child: Image.network(imageUrl, fit: BoxFit.cover),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        frameBuilder:
+                            (context, child, frame, wasSynchronouslyLoaded) {
+                              if (wasSynchronouslyLoaded || frame != null) {
+                                return child;
+                              }
+                              return const SkeletonBox(
+                                width: double.infinity,
+                                height: double.infinity,
+                                borderRadius: BorderRadius.zero,
+                              );
+                            },
+                      ),
                     ),
                   ),
                 ),

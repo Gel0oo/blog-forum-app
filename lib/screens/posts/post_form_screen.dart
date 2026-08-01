@@ -11,10 +11,8 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
-import '../../utils/upload_image.dart';
 import '../../providers/posts_provider.dart';
 import '../../theme/app_theme.dart';
-import '../../supabase_config.dart';
 import '../../widgets/top_app_bar.dart';
 import '../../widgets/post_form/form_markdown.dart';
 import '../../widgets/post_form/form_imagepicker.dart';
@@ -41,10 +39,7 @@ class _PostFormScreenState extends State<PostFormScreen> {
   @override
   void initState() {
     super.initState();
-    bodyController = MarkdownVisualController(
-      context,
-      pickedImages: pickedImages,
-    );
+    bodyController = MarkdownVisualController(context);
     if (isEditing) {
       titleController.text = widget.existingPost!['title'] ?? '';
       bodyController.text = widget.existingPost!['body'] ?? '';
@@ -82,39 +77,6 @@ class _PostFormScreenState extends State<PostFormScreen> {
     super.dispose();
   }
 
-  void _onToolbarImagePicked(Uint8List bytes) {
-    setState(() => pickedImages.add(bytes));
-    final index = pickedImages.length - 1;
-    final token = 'IMAGE_$index';
-    final markdownTag = '![Image]($token)';
-
-    final currentText = bodyController.text;
-    final selection = bodyController.selection;
-
-    if (selection.isValid && selection.start >= 0) {
-      final start = selection.start;
-      final needsLeadingNewline =
-          start > 0 && !currentText.substring(0, start).endsWith('\n\n');
-      final prefix = needsLeadingNewline
-          ? (currentText.substring(0, start).endsWith('\n') ? '\n' : '\n\n')
-          : '';
-      final insertion = '$prefix$markdownTag\n\n';
-
-      final newText = currentText.replaceRange(start, selection.end, insertion);
-      bodyController.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: start + insertion.length),
-      );
-    } else {
-      final needsNewline =
-          currentText.isNotEmpty && !currentText.endsWith('\n\n');
-      final prefix = needsNewline
-          ? (currentText.endsWith('\n') ? '\n' : '\n\n')
-          : '';
-      bodyController.text = '$currentText$prefix$markdownTag\n\n';
-    }
-  }
-
   Future<void> pickImages() async {
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
@@ -137,30 +99,14 @@ class _PostFormScreenState extends State<PostFormScreen> {
 
     try {
       final provider = context.read<PostsProvider>();
-      String finalBody = bodyController.text.trim();
-      final userId = supabase.auth.currentUser!.id;
+      final finalBody = bodyController.text.trim();
 
-      for (var i = 0; i < pickedImages.length; i++) {
-        final url = await uploadPostImage(userId, pickedImages[i], i);
-
-        final token = 'IMAGE_$i';
-        finalBody = finalBody.replaceAll('![$token]($token)', '![Image]($url)');
-        finalBody = finalBody.replaceAll('($token)', '($url)');
-
-        if (isEditing) {
-          await supabase.from('post_images').insert({
-            'post_id': widget.existingPost!['id'],
-            'url': url,
-          });
-        }
-      }
-      
       if (isEditing) {
         await provider.updatePost(
           postId: widget.existingPost!['id'],
           title: titleController.text.trim(),
           body: finalBody,
-          newImageBytes: [],
+          newImageBytes: pickedImages,
           imageIdsToDelete: imageIdsToDelete,
         );
       } else {
@@ -252,10 +198,7 @@ class _PostFormScreenState extends State<PostFormScreen> {
                 const SizedBox(height: 20),
 
                 // 3. Markdown Body Canvas
-                FormMarkdown(
-                  controller: bodyController,
-                  onImageFilePicked: _onToolbarImagePicked,
-                ),
+                FormMarkdown(controller: bodyController),
                 const SizedBox(height: 20),
 
                 if (error != null) ...[

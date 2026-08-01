@@ -2,54 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../../theme/app_theme.dart';
 
-final _imageTagPattern = RegExp(r'!\[Image\]\([^)]*\)');
-
-/// True if [newText] only partially overlaps an ![Image](...) tag that was
-/// intact in [oldText] — i.e. someone typed or deleted INTO the tag rather
-/// than fully removing it. Fully deleting/replacing a tag is still allowed.
-bool _editBreaksImageTag(String oldText, String newText) {
-  var prefixLen = 0;
-  final maxPrefix = oldText.length < newText.length
-      ? oldText.length
-      : newText.length;
-  while (prefixLen < maxPrefix && oldText[prefixLen] == newText[prefixLen]) {
-    prefixLen++;
-  }
-
-  var suffixLen = 0;
-  final maxSuffix = maxPrefix - prefixLen;
-  while (suffixLen < maxSuffix &&
-      oldText[oldText.length - 1 - suffixLen] ==
-          newText[newText.length - 1 - suffixLen]) {
-    suffixLen++;
-  }
-
-  final editStart = prefixLen;
-  final editEnd = oldText.length - suffixLen; // exclusive, old-text coords
-
-  for (final match in _imageTagPattern.allMatches(oldText)) {
-    final overlaps = editStart < match.end && editEnd > match.start;
-    if (!overlaps) continue;
-    final fullyCovers = editStart <= match.start && editEnd >= match.end;
-    if (!fullyCovers) return true; // partial edit into a tag → reject
-  }
-  return false;
-}
-
 class MarkdownVisualController extends TextEditingController {
   final BuildContext context;
-  final List<Uint8List> pickedImages;
 
-  MarkdownVisualController(
-    this.context, {
-    required this.pickedImages,
-    super.text,
-  });
+  MarkdownVisualController(this.context, {super.text});
 
   @override
   TextSpan buildTextSpan({
@@ -58,95 +18,15 @@ class MarkdownVisualController extends TextEditingController {
     required bool withComposing,
   }) {
     final children = <InlineSpan>[];
-    // Regex Order: 1. Image, 2. Link (FIRST before bold), 3. Bold-Italic, 4. Bold, 5. Italic
-    final pattern = RegExp(
-      r'(!\[.*?\]\(.*?\))|(\*\*\*.*?\*\*\*)|(\*\*.*?\*\*)|(\*.*?\*)',
-    );
+    final pattern = RegExp(r'(\*\*\*.*?\*\*\*)|(\*\*.*?\*\*)|(\*.*?\*)');
 
     text.splitMapJoin(
       pattern,
       onMatch: (match) {
         final fullMatch = match[0]!;
 
-        // 1. Inline Image Token Badge: ![alt](IMAGE_0) or ![alt](https://...)
-        if (fullMatch.startsWith('![')) {
-          final closeBracket = fullMatch.indexOf('](');
-          final token = closeBracket != -1 && fullMatch.endsWith(')')
-              ? fullMatch.substring(closeBracket + 2, fullMatch.length - 1)
-              : '';
-
-          Widget? thumbWidget;
-
-          if (token.startsWith('IMAGE_')) {
-            final index = int.tryParse(token.replaceFirst('IMAGE_', '')) ?? -1;
-            if (index >= 0 && index < pickedImages.length) {
-              thumbWidget = ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.memory(
-                  pickedImages[index],
-                  width: 36,
-                  height: 36,
-                  fit: BoxFit.cover,
-                ),
-              );
-            }
-          } else if (token.startsWith('http')) {
-            thumbWidget = ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.network(
-                token,
-                width: 36,
-                height: 36,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    const Icon(LucideIcons.image, size: 16),
-              ),
-            );
-          }
-
-          if (thumbWidget != null) {
-            children.add(
-              WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        thumbWidget,
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Image Attached',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          } else {
-            children.add(TextSpan(text: fullMatch, style: style));
-          }
-        }
         // 3. ***bold italic***
-        else if (fullMatch.startsWith('***') &&
+        if (fullMatch.startsWith('***') &&
             fullMatch.endsWith('***') &&
             fullMatch.length >= 6) {
           final content = fullMatch.substring(3, fullMatch.length - 3);
@@ -243,13 +123,8 @@ class MarkdownVisualController extends TextEditingController {
 
 class FormMarkdown extends StatefulWidget {
   final TextEditingController controller;
-  final ValueChanged<Uint8List>? onImageFilePicked;
 
-  const FormMarkdown({
-    super.key,
-    required this.controller,
-    this.onImageFilePicked,
-  });
+  const FormMarkdown({super.key, required this.controller});
 
   @override
   State<FormMarkdown> createState() => _FormMarkdownState();
@@ -330,18 +205,6 @@ class _FormMarkdownState extends State<FormMarkdown> {
 
     final text = widget.controller.text;
     final selection = widget.controller.selection;
-
-    // A click/keystroke landed inside an existing image tag instead of
-    // beside it — bounce the edit back instead of letting the tag corrupt.
-    if (_editBreaksImageTag(_previousText, text)) {
-      _isProgrammaticChange = true;
-      widget.controller.value = TextEditingValue(
-        text: _previousText,
-        selection: _previousSelection,
-      );
-      _isProgrammaticChange = false;
-      return;
-    }
 
     _pushUndoState(widget.controller.value);
 
@@ -571,17 +434,6 @@ class _FormMarkdownState extends State<FormMarkdown> {
     );
   }
 
-  Future<void> _pickAndInsertImageFile() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
-    if (file == null) return;
-
-    final bytes = await file.readAsBytes();
-    if (widget.onImageFilePicked != null) {
-      widget.onImageFilePicked!(bytes);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
@@ -632,11 +484,6 @@ class _FormMarkdownState extends State<FormMarkdown> {
                     tooltip: 'Italic (Ctrl+I)',
                     icon: const Icon(LucideIcons.italic, size: 16),
                     onPressed: () => _toggleFormat('*'),
-                  ),
-                  IconButton(
-                    tooltip: 'Insert Image',
-                    icon: const Icon(LucideIcons.image, size: 16),
-                    onPressed: _pickAndInsertImageFile,
                   ),
                   IconButton(
                     tooltip: 'Bullet List',
