@@ -18,7 +18,7 @@ import '../../widgets/post_list/list_cardskeleton.dart';
 import '../../widgets/pill_button.dart';
 import '../../widgets/menu_dropdown.dart';
 import '../../main.dart';
-import 'mobile_post_list.dart'; // <-- Imports Mobile Feed
+import 'mobile_post_list.dart';
 
 class PostListScreen extends StatefulWidget {
   const PostListScreen({super.key});
@@ -66,12 +66,12 @@ class _PostListScreenState extends State<PostListScreen> {
       appBar: const TopAppBar(),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // 1. MOBILE VIEW: Delegates directly to Hashnode Mobile Feed (<750px)
+          // Mobile View
           if (constraints.maxWidth < 750) {
             return const MobilePostList();
           }
 
-          // 2. DESKTOP VIEW
+          // Desktop View
           final isTablet = constraints.maxWidth < 1100;
           final List<Widget> feedItems = [];
 
@@ -115,9 +115,9 @@ class _PostListScreenState extends State<PostListScreen> {
               ),
             );
           }
-          // Desktop Publication Feed
+          // Desktop Feed
           else {
-            // A. Top Big Featured Hero Banner
+            // Hero Banner
             final heroPost = displayedPosts.first;
             feedItems.add(
               Padding(
@@ -130,7 +130,7 @@ class _PostListScreenState extends State<PostListScreen> {
               ),
             );
 
-            // B. Middle Trending Container
+            // Trending Container
             final sortedByLikes =
                 List<Map<String, dynamic>>.from(displayedPosts)..sort((a, b) {
                   final aLikes = ((a['post_likes'] as List?) ?? []).length;
@@ -152,7 +152,7 @@ class _PostListScreenState extends State<PostListScreen> {
               );
             }
 
-            // C. Bottom Remaining Posts in 2/3 Column Grid
+            // Posts
             final remainingPosts = displayedPosts.length > 1
                 ? displayedPosts.sublist(1)
                 : <Map<String, dynamic>>[];
@@ -194,7 +194,7 @@ class _PostListScreenState extends State<PostListScreen> {
               );
             }
 
-            // D. Pagination Skeleton
+            // Pagination Skeleton
             if (postsProvider.hasMore) {
               feedItems.add(
                 const Padding(
@@ -233,7 +233,7 @@ class _PostListScreenState extends State<PostListScreen> {
     );
   }
 
-  // Desktop Hashnode Trending Container (Top 4 Posts)
+  // Trending Container for Desktop View
   Widget _buildHashnodeTrendingSection(
     BuildContext context,
     List<Map<String, dynamic>> posts,

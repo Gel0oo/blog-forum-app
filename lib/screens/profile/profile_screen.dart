@@ -63,7 +63,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final bytes = await file.readAsBytes();
 
-    // Inspect binary magic header for GIF87a / GIF89a signatures
     if (bytes.length >= 4 &&
         bytes[0] == 0x47 && // 'G'
         bytes[1] == 0x49 && // 'I'

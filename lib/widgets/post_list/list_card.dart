@@ -87,7 +87,7 @@ class _ListCardState extends State<ListCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Most Recent Badge for Hero Card
+                // Most Recent Badge for Hero Card
                 if (isHero) ...[
                   Row(
                     children: [
@@ -114,7 +114,7 @@ class _ListCardState extends State<ListCard> {
                   const SizedBox(height: 8),
                 ],
 
-                // 2. Author Meta Line
+                // Author Meta Line
                 Row(
                   children: [
                     UserAvatar(avatarUrl: authorAvatar, radius: 12),
@@ -135,7 +135,7 @@ class _ListCardState extends State<ListCard> {
                 ),
                 const SizedBox(height: 8),
 
-                // 3. Middle Hashnode Section (Content Left, Thumbnail Right)
+                // Middle Hashnode Section
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -214,7 +214,7 @@ class _ListCardState extends State<ListCard> {
                 ),
                 const SizedBox(height: 10),
 
-                // 4. Bottom Action Bar
+                // Bottom Action Bar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

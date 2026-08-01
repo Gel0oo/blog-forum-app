@@ -29,7 +29,7 @@ class CommentsProvider extends ChangeNotifier {
       final from = page * pageSize;
       final to = from + pageSize - 1;
 
-      // 1. Fetch comments and attached comment images
+      // Fetch comments/attached comment images
       final response = await supabase
           .from('comments')
           .select('*, comment_images(*)')
@@ -41,7 +41,7 @@ class CommentsProvider extends ChangeNotifier {
       final newComments = List<Map<String, dynamic>>.from(response.data);
       totalCount = response.count;
 
-      // 2. Fetch author profiles by user_ids (Matches PostsProvider pattern)
+      // Fetch author profiles
       final userIds = newComments
           .map((c) => c['user_id'] as String)
           .toSet()
@@ -66,7 +66,7 @@ class CommentsProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error fetching comments: $e');
     } finally {
-      isLoading = false; // Guarantees loading state resets even on error
+      isLoading = false;
       notifyListeners();
     }
   }

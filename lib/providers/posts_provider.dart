@@ -49,7 +49,7 @@ class PostsProvider extends ChangeNotifier {
 
       if (refresh) {
         page = 0;
-        posts = newPosts; // Replaces posts seamlessly without skeleton flicker
+        posts = newPosts;
         hasMore = newPosts.length >= pageSize;
       } else {
         posts.addAll(newPosts);
@@ -167,7 +167,7 @@ class PostsProvider extends ChangeNotifier {
     final likes = post['post_likes'] as List;
     final alreadyLiked = likes.any((l) => l['user_id'] == userId);
 
-    // 1. Optimistic Instant UI Update (0ms delay)
+    // Instant UI Update
     if (alreadyLiked) {
       likes.removeWhere((l) => l['user_id'] == userId);
     } else {
@@ -175,7 +175,7 @@ class PostsProvider extends ChangeNotifier {
     }
     notifyListeners();
 
-    // 2. Silent Background Server Sync
+    // Background Server Sync
     try {
       if (alreadyLiked) {
         await supabase
@@ -190,7 +190,7 @@ class PostsProvider extends ChangeNotifier {
         });
       }
     } catch (e) {
-      // Revert local UI state if network fails
+      // Revert UI state if network fails
       if (alreadyLiked) {
         likes.add({'user_id': userId});
       } else {
@@ -204,14 +204,14 @@ class PostsProvider extends ChangeNotifier {
   Future<void> searchPosts(String query) async {
     final q = query.trim();
     if (q.isEmpty) {
-      await fetchPosts(refresh: true); // Resets feed if query is cleared
+      await fetchPosts(refresh: true);
       return;
     }
 
     isLoading = true;
     notifyListeners();
 
-    // Searches entire Supabase database for matching titles or bodies
+    // Searches Supabase database for matching titles or bodies
     final response = await supabase
         .from('posts')
         .select('*, post_images(*), comments(count), post_likes(user_id)')
@@ -233,7 +233,7 @@ class PostsProvider extends ChangeNotifier {
       }
     }
 
-    hasMore = false; // Prevents infinite skeleton loading on search results
+    hasMore = false;
     isLoading = false;
     notifyListeners();
   }

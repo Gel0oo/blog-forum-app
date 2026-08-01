@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn;
 import '../image_viewer.dart';
 
-/// Auto-playing multi-image carousel. Pauses on hover, advances every 5s.
+/// Auto plays multi image carousel. Pauses on hover, slides every 5s.
 class DetailImageCarousel extends StatefulWidget {
   final List<String> urls;
   const DetailImageCarousel({super.key, required this.urls});
@@ -61,8 +61,8 @@ class _DetailImageCarouselState extends State<DetailImageCarousel> {
     const double height = 420;
 
     return MouseRegion(
-      onEnter: (_) => _pauseAutoPlay(), // Pause auto-slide when mouse hovers
-      onExit: (_) => _startAutoPlay(),  // Resume auto-slide when mouse leaves
+      onEnter: (_) => _pauseAutoPlay(), // Pause auto slide when mouse hovers
+      onExit: (_) => _startAutoPlay(),  // Resume auto slide when mouse leaves
       child: SizedBox(
         height: height,
         child: Stack(

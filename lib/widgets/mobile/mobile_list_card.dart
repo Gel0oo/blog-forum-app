@@ -83,7 +83,7 @@ class _MobileListCardState extends State<MobileListCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Most Recent Badge for Hero Card
+                // Most Recent Badge for Hero Card
                 if (isHero) ...[
                   Row(
                     children: [
@@ -110,7 +110,7 @@ class _MobileListCardState extends State<MobileListCard> {
                   const SizedBox(height: 8),
                 ],
 
-                // 2. Author Meta Line
+                // Author Meta Line
                 Row(
                   children: [
                     UserAvatar(avatarUrl: authorAvatar, radius: 12),
@@ -131,7 +131,7 @@ class _MobileListCardState extends State<MobileListCard> {
                 ),
                 const SizedBox(height: 8),
 
-                // 3. Cover Image Stacked Top on Hero
+                // Cover Image Stacked Top on Hero
                 if (isHero && imageUrl != null) ...[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
@@ -157,7 +157,7 @@ class _MobileListCardState extends State<MobileListCard> {
                   const SizedBox(height: 12),
                 ],
 
-                // 4. Title & Subtitle Row (Thumbnail 90x65 on Right for non-Hero)
+                // Title & Subtitle Row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -234,7 +234,7 @@ class _MobileListCardState extends State<MobileListCard> {
                 ),
                 const SizedBox(height: 10),
 
-                // 5. Action Bar
+                // Action Bar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

@@ -224,7 +224,7 @@ class _DetailCommentState extends State<DetailComment> {
           const SizedBox(height: 20),
         ],
 
-        // Comments List (Reddit Layout)
+        // Comments List
         if (commentsProvider.isLoading && commentsProvider.comments.isEmpty)
           Column(
             children: List.generate(
@@ -315,7 +315,7 @@ class _DetailCommentState extends State<DetailComment> {
                   ),
                   const SizedBox(height: 6),
 
-                  // 2. Comment Body Text
+                  // Comment Body Text
                   Padding(
                     padding: const EdgeInsets.only(left: 36),
                     child: Column(

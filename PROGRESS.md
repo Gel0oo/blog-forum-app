@@ -16,7 +16,7 @@
 - [x] 6. Comments + images
 - [x] 7. Profile (avatar + name)
 - [x] 8. Deploy to vercel :D
-- [ ] 9. Submit to HR
+- [x] 9. Submit to HR
 
 ## Polishing (gotta make the website beautiful right?)
 - [x] 1. Show author name + avatar on posts and comments
@@ -26,7 +26,7 @@
 - [x] 5. Visual/style pass using design reference (spacing, colors, typography)
 - [x] 6. Tap-to-enlarge image viewer
 - [x] 7. Dark/Light Mode
-- [ ] 8. Mobile browser compatible
+- [x] 8. Mobile browser compatible
 
 ## Few bug fixes
 - [x] Postly Logo does not take you to the main page.
