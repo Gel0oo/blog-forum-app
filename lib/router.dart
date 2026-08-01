@@ -8,6 +8,32 @@ import 'screens/auth/register_screen.dart';
 import 'screens/posts/post_list_screen.dart';
 import 'screens/posts/post_detail_screen.dart';
 
+/// Reusable Right-to-Left Slide Page Route for Navigator.push
+class SlidePageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  SlidePageRoute({required this.page})
+    : super(
+        opaque: false,
+        barrierColor: const Color(0xFF16191C),
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position:
+                Tween<Offset>(
+                  begin: const Offset(1.0, 0.0), // Slide in from right
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
+            child: child,
+          );
+        },
+      );
+}
+
 GoRouter buildRouter(AuthProvider authProvider) {
   return GoRouter(
     initialLocation: '/',
@@ -33,14 +59,53 @@ GoRouter buildRouter(AuthProvider authProvider) {
           );
         },
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const SizedBox.shrink()),
-          GoRoute(path: '/login', builder: (context, state) => const SizedBox.shrink()),
-          GoRoute(path: '/register', builder: (context, state) => const SizedBox.shrink()),
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/login',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+          GoRoute(
+            path: '/register',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
         ],
       ),
       GoRoute(
         path: '/post/:id',
-        builder: (context, state) => PostDetailScreen(postId: state.pathParameters['id']),
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            barrierColor: const Color(0xFF16191C),
+            child: Container(
+              color: const Color(0xFF16191C),
+              child: PostDetailScreen(postId: state.pathParameters['id']),
+            ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  final opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+                  );
+                  final slide =
+                      Tween<Offset>(
+                        begin: const Offset(0.12, 0.0), // Subtle 12% slide in
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      );
+
+                  return FadeTransition(
+                    opacity: opacity,
+                    child: SlideTransition(position: slide, child: child),
+                  );
+                },
+          );
+        },
       ),
     ],
   );

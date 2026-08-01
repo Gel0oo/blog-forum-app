@@ -35,11 +35,17 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
     final profileProvider = context.watch<ProfileProvider>();
 
     return AppBar(
+      primary: false, // <-- Disables top status-bar padding gap on desktop
       automaticallyImplyLeading: false,
       toolbarHeight: preferredSize.height,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
+      backgroundColor: AppColors.background(context),
+      elevation: 0,
+      shape: Border(
+        bottom: BorderSide(color: AppColors.border(context), width: 1),
+      ),
       title: Row(
         children: [
           GestureDetector(
@@ -71,11 +77,6 @@ class TopAppBar extends StatelessWidget implements PreferredSizeWidget {
           SizedBox(width: 500, height: 50, child: const _SearchField()),
           const Spacer(),
         ],
-      ),
-      backgroundColor: AppColors.background(context),
-      elevation: 0,
-      shape: Border(
-        bottom: BorderSide(color: AppColors.border(context), width: 1),
       ),
       actions: [
         if (isLoggedIn) ...[
@@ -189,8 +190,7 @@ class _SearchFieldState extends State<_SearchField> {
         optionsBuilder: (textEditingValue) {
           final query = textEditingValue.text.trim();
           if (query.isEmpty) {
-            context.read<PostsProvider>().searchPosts('');
-            return const Iterable<String>.empty();
+            return const Iterable<String>.empty(); // Suggestions only
           }
           _fetchSuggestions(query);
           return _currentSuggestions;
@@ -251,6 +251,12 @@ class _SearchFieldState extends State<_SearchField> {
           );
         },
         fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          controller.addListener(() {
+            if (controller.text.isEmpty) {
+              context.read<PostsProvider>().searchPosts('');
+            }
+          });
+
           return shadcn.TextField(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             controller: controller,
@@ -267,14 +273,10 @@ class _SearchFieldState extends State<_SearchField> {
             ),
             features: [
               shadcn.InputFeature.leading(
-                Row(
-                  children: [
-                    Icon(
-                      LucideIcons.search,
-                      size: 14,
-                      color: AppColors.textSecondary(context),
-                    ),
-                  ],
+                Icon(
+                  LucideIcons.search,
+                  size: 14,
+                  color: AppColors.textSecondary(context),
                 ),
               ),
               const shadcn.InputFeature.clear(),

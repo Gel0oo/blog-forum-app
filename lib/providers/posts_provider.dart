@@ -13,51 +13,54 @@ class PostsProvider extends ChangeNotifier {
 
   Future<void> fetchPosts({bool refresh = false}) async {
     if (isLoading) return;
-    if (refresh) {
-      page = 0;
-      posts = [];
-      hasMore = true;
-    }
-    if (!hasMore) return;
 
     isLoading = true;
     notifyListeners();
 
-    final from = page * pageSize;
+    final targetPage = refresh ? 0 : page;
+    final from = targetPage * pageSize;
     final to = from + pageSize - 1;
 
-    final response = await supabase
-        .from('posts')
-        .select('*, post_images(*), comments(count), post_likes(user_id)')
-        .order('created_at', ascending: false)
-        .range(from, to);
+    try {
+      final response = await supabase
+          .from('posts')
+          .select('*, post_images(*), comments(count), post_likes(user_id)')
+          .order('created_at', ascending: false)
+          .range(from, to);
 
-    final newPosts = List<Map<String, dynamic>>.from(response);
+      final newPosts = List<Map<String, dynamic>>.from(response);
 
-    final userIds = newPosts
-        .map((p) => p['user_id'] as String)
-        .toSet()
-        .toList();
-    if (userIds.isNotEmpty) {
-      final profilesResponse = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url')
-          .inFilter('id', userIds);
+      final userIds = newPosts
+          .map((p) => p['user_id'] as String)
+          .toSet()
+          .toList();
+      if (userIds.isNotEmpty) {
+        final profilesResponse = await supabase
+            .from('profiles')
+            .select('id, name, avatar_url')
+            .inFilter('id', userIds);
 
-      final profilesById = {for (final p in profilesResponse) p['id']: p};
+        final profilesById = {for (final p in profilesResponse) p['id']: p};
 
-      for (final post in newPosts) {
-        post['author'] = profilesById[post['user_id']];
+        for (final post in newPosts) {
+          post['author'] = profilesById[post['user_id']];
+        }
       }
+
+      if (refresh) {
+        page = 0;
+        posts = newPosts; // Replaces posts seamlessly without skeleton flicker
+        hasMore = newPosts.length >= pageSize;
+      } else {
+        posts.addAll(newPosts);
+        if (newPosts.length < pageSize) hasMore = false;
+      }
+      page++;
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-
-    if (newPosts.length < pageSize) hasMore = false;
-    posts.addAll(newPosts);
-    page++;
-    isLoading = false;
-    notifyListeners();
   }
-
   Future<Map<String, dynamic>?> fetchPostById(String id) async {
     final existingIndex = posts.indexWhere((p) => p['id'] == id);
     if (existingIndex != -1) return posts[existingIndex];
